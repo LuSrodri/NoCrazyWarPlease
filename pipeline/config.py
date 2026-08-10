@@ -449,11 +449,23 @@ def carregar_config() -> Config:
         janela_horas=int(os.getenv("JANELA_HORAS", "24")),
         num_trends=int(os.getenv("NUM_TRENDS", "10")),
         num_noticias=int(os.getenv("NUM_NOTICIAS", "6")),
-        # Ambos ZERADOS no curto: leitura da X API é paga por post, os Shorts
-        # rodam 12x por dia somados e NÃO travam por falta de clipe (precisam
-        # de 3, não de 8). Quem precisa é o longo, e ativar_formato_longo sobe
-        # os dois. Para ligar no curto, basta o .env.
-        x_max_posts_video=int(os.getenv("X_MAX_POSTS_VIDEO", "0")),
+        # A varredura `has:videos` fica LIGADA no curto deste canal, ao
+        # contrário do repo de origem, onde ela era 0. Lá o argumento era que
+        # os Shorts rodavam 12x por dia e não travavam por falta de clipe; aqui
+        # eles rodam 3x, e a PRIMEIRA execução real (2026-08-10) travou por
+        # exatamente isso: 227 posts coletados, 73 deles com clipe de vídeo
+        # nativo, e mesmo assim as três candidatas tentadas chegaram à auditoria
+        # com UM clipe cada — sem folga nenhuma, então um único veto zerava a
+        # pauta e a execução abortava.
+        #
+        # A causa é a que o comentário de x_max_posts_video já descrevia: a
+        # busca principal ordena por RELEVÂNCIA e não prefere vídeo, então o
+        # post com o clipe do fato perde vaga para um post de TEXTO sobre o
+        # mesmo fato. A varredura é uma segunda passada sobre as MESMAS contas
+        # que só devolve post com clipe — nenhuma fonte nova, ~US$ 0,30 por
+        # execução. Num canal cujo formato é montado só com clipe, esse é o
+        # custo de existir.
+        x_max_posts_video=int(os.getenv("X_MAX_POSTS_VIDEO", "60")),
         x_max_posts_busca=int(os.getenv("X_MAX_POSTS_BUSCA", "0")),
         x_max_posts_timeline=int(os.getenv("X_MAX_POSTS_TIMELINE", "60")),
         max_posts_midia=int(os.getenv("MAX_POSTS_MIDIA", "12")),
