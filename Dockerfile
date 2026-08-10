@@ -7,6 +7,15 @@ RUN apt-get update \
 
 WORKDIR /app
 
+# Sem isto o Python bufferiza o stdout quando não há TTY, e no Render o log de
+# uma execução inteira só aparece quando o processo morre — foi o que aconteceu
+# na primeira execução real (2026-08-10): 13 minutos de log vazio e depois tudo
+# de uma vez. Só o stderr chegava na hora, porque não é bufferizado, o que dava
+# a impressão de que apenas os erros existiam. Acompanhar um cron de ~10 minutos
+# em tempo real é a diferença entre ver a coleta afunilar e descobrir isso
+# depois do fato.
+ENV PYTHONUNBUFFERED=1
+
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
