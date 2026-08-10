@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+output/
+videos.txt
+.rotacao_lotes
+.rotacao_timeline
+.contas_ids.json
+.claude/
