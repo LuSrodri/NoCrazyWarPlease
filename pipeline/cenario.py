@@ -1,16 +1,22 @@
-"""Cenário do vídeo: um SMARTPHONE apoiado sobre uma cama.
+"""Cenário do vídeo: um SMARTPHONE apoiado sobre uma superfície.
 
 Substitui (2026-08-09, pedido do usuário) a sala de estar com TV que só o
 formato longo usava. Agora os DOIS formatos são montados dentro do aparelho: o
 clipe do X, as cartelas e as figuras aparecem na TELA do celular, e o resto do
-quadro é a cama em volta.
+quadro é a superfície em volta.
 
-A cama é a FOTO `fundo-cama.png` da raiz do projeto (2026-08-10, pedido do
-usuário), não mais uma colcha desenhada em Pillow: a versão desenhada — colcha
+A superfície é a FOTO `fundo.png` da raiz do projeto (2026-08-10, pedido do
+usuário), não mais uma cama desenhada em Pillow: a versão desenhada — colcha
 em gradiente, travesseiro, vira do lençol e dobras desfocadas — saiu inteira. A
 foto entra cobrindo o quadro (escala por MAIOR lado + corte central, sem
 distorcer), levemente suavizada, dessaturada e escurecida, com vinheta: a
-estampa é fundo, e quem tem que puxar o olho é a tela.
+textura é fundo, e quem tem que puxar o olho é a tela.
+
+QUAL foto é decisão do usuário, e o módulo não presume nada sobre ela: era uma
+cama até 2026-08-14, é uma MESA DE MADEIRA desde então. Por isso o arquivo se
+chama `fundo.png` e não descreve o que mostra — a troca anterior deixou o nome
+`fundo-cama.png` mentindo sobre o conteúdo, e o tratamento (cobrir + desfocar +
+dessaturar + vinheta) vale para qualquer textura, em qualquer proporção.
 
 A ORIENTAÇÃO do aparelho vem do MATERIAL (2026-08-10, pedido do usuário), não
 mais do quadro: clipe horizontal põe o celular DEITADO, clipe vertical põe EM
@@ -45,8 +51,8 @@ Três entradas:
 - `retangulo_tela` devolve o retângulo da tela SEM renderizar nada (as legendas
   e as cartelas precisam dele antes de a montagem existir);
 - `area_legenda` diz onde a legenda do Short pode morar (dentro da tela, ou na
-  cama abaixo do aparelho quando ele está deitado num quadro em pé);
-- `gerar_cenario_celular` renderiza a cama + o aparelho.
+  fundo abaixo do aparelho quando ele está deitado num quadro em pé);
+- `gerar_cenario_celular` renderiza a superfície + o aparelho.
 """
 
 import math
@@ -56,9 +62,9 @@ from PIL import Image, ImageChops, ImageDraw, ImageEnhance, ImageFilter
 
 from .config import RAIZ
 
-# Foto da cama, na raiz do projeto. Sem ela o cenário sairia sem o fundo que o
-# usuário escolheu — aborta (diretriz de fail-fast do pipeline).
-FUNDO_CAMA = RAIZ / "fundo-cama.png"
+# Foto da superfície, na raiz do projeto. Sem ela o cenário sairia sem o fundo
+# que o usuário escolheu — aborta (diretriz de fail-fast do pipeline).
+FUNDO = RAIZ / "fundo.png"
 
 # Proporção da TELA do aparelho: largura/altura com ele EM PÉ (19,5:9 é a razão
 # dos celulares atuais). Deitado, é o inverso.
@@ -66,14 +72,14 @@ TELA_RAZAO = 9 / 19.5
 
 # Quanto do quadro o aparelho pode ocupar, por (aparelho em pé?, quadro em pé?)
 # -> (fração máxima da largura, fração máxima da altura). O par muda porque a
-# sobra fica em eixos diferentes, e os valores deixam uma faixa de cama visível
-# em volta — sem ela o celular não lê como objeto sobre uma cama, lê como borda
-# preta.
+# sobra fica em eixos diferentes, e os valores deixam uma faixa de fundo visível
+# em volta — sem ela o celular não lê como objeto sobre uma superfície, lê como
+# borda preta.
 #
 # Nas duas combinações ALINHADAS os valores são os de sempre (não mexer sem
 # motivo: são o enquadramento que já está no ar). Nas CRUZADAS, o lado longo do
 # aparelho encosta no lado CURTO do quadro e só esse eixo aperta, então ele
-# pode ser mais generoso — a sobra de cama vem de graça no outro eixo, que fica
+# pode ser mais generoso — a sobra de fundo vem de graça no outro eixo, que fica
 # com mais da metade do quadro livre.
 MAX_OCUPACAO = {
     (True, True): (0.68, 0.80),  # em pé no 9:16 — Short com clipe vertical
@@ -82,13 +88,13 @@ MAX_OCUPACAO = {
     (True, False): (0.68, 0.88),  # em pé no 16:9 — longo com clipe vertical
 }
 
-# Respiro entre o corpo do aparelho e a faixa da legenda, quando ela cai na
-# cama (fração da altura do quadro).
+# Respiro entre o corpo do aparelho e a faixa da legenda, quando ela cai no
+# fundo (fração da altura do quadro).
 LEGENDA_FOLGA_FRAC = 0.02
 # Rodapé RESERVADO no Short: o Shorts e o TikTok desenham título, @ do canal e
 # botões por cima dos últimos ~14% do quadro. Com a legenda dentro da tela isso
 # nunca foi problema (o aparelho em pé já a segurava em ~69% da altura); com o
-# aparelho deitado, a faixa de cama vai até a base do quadro, e sem esta reserva
+# aparelho deitado, a faixa de fundo vai até a base do quadro, e sem esta reserva
 # a palavra cairia bem debaixo da interface do app.
 LEGENDA_RODAPE_FRAC = 0.14
 
@@ -101,11 +107,11 @@ MOLDURA_FRAC = 0.026  # bezel preto entre a tela e o trilho
 TRILHO_FRAC = 0.014  # trilho metálico externo
 RAIO_TELA_FRAC = 0.075  # canto da tela (mais redondo que os 0.055 de antes)
 
-# Tratamento da foto da cama: ela é fundo, não é o assunto.
-CAMA_DESFOQUE_FRAC = 0.005  # sigma como fração do lado menor do quadro
-CAMA_SATURACAO = 0.80
-CAMA_BRILHO = 0.82
-CAMA_VINHETA = 0.55  # opacidade máxima do escurecimento das bordas
+# Tratamento da foto de fundo: ela é fundo, não é o assunto.
+FUNDO_DESFOQUE_FRAC = 0.005  # sigma como fração do lado menor do quadro
+FUNDO_SATURACAO = 0.80
+FUNDO_BRILHO = 0.82
+FUNDO_VINHETA = 0.55  # opacidade máxima do escurecimento das bordas
 
 # Corpo do aparelho.
 APARELHO = (13, 13, 16)  # bezel preto
@@ -188,7 +194,7 @@ def area_legenda(
 
     Com ele DEITADO num quadro EM PÉ (Short com clipe horizontal), a tela vira
     uma faixa de ~440px de altura, e a legenda ali cobriria o clipe inteiro.
-    Então ela desce para a CAMA, na faixa abaixo do aparelho: é o único lugar do
+    Então ela desce para o FUNDO, na faixa abaixo do aparelho: é o único lugar do
     quadro com espaço, e sobra de sobra — o aparelho deitado ocupa menos de um
     terço da altura do Short. Vale só para o formato curto; o longo não tem
     legenda queimada.
@@ -210,7 +216,7 @@ def _cobrir(foto: Image.Image, largura: int, altura: int) -> Image.Image:
     """Escala a foto para COBRIR o quadro e corta o excesso pelo centro.
 
     Equivale ao `force_original_aspect_ratio=increase` + `crop` do ffmpeg: a
-    estampa da colcha não pode esticar, senão a flor entrega que a imagem foi
+    textura não pode esticar, senão o veio da madeira entrega que a imagem foi
     deformada.
     """
     escala = max(largura / foto.width, altura / foto.height)
@@ -299,30 +305,30 @@ def _capsula(desenho: ImageDraw.ImageDraw, p0, p1, r: float, cor) -> None:
     )
 
 
-def _desenhar_cama(largura: int, altura: int) -> Image.Image:
-    """Fundo do quadro: a foto da cama, tratada para não competir com a tela."""
-    if not FUNDO_CAMA.is_file():
+def _desenhar_fundo(largura: int, altura: int) -> Image.Image:
+    """Fundo do quadro: a foto da superfície, tratada para não competir com a tela."""
+    if not FUNDO.is_file():
         raise SystemExit(
-            f"Fundo da cama ausente ({FUNDO_CAMA}) — o cenário do vídeo é "
+            f"Foto de fundo ausente ({FUNDO}) — o cenário do vídeo é "
             "montado sobre essa foto; abortando."
         )
-    with Image.open(FUNDO_CAMA) as arquivo:
+    with Image.open(FUNDO) as arquivo:
         foto = arquivo.convert("RGB")
 
     img = _cobrir(foto, largura, altura)
-    # Suavização leve: profundidade de campo de um objeto apoiado sobre o
-    # tecido. Só o bastante para a estampa parar de disputar detalhe com o
-    # conteúdo da tela — borrar mais apagaria a flor e devolveria o retângulo
-    # cinza uniforme que a cama desenhada produzia.
-    sigma = max(1.0, min(largura, altura) * CAMA_DESFOQUE_FRAC)
+    # Suavização leve: profundidade de campo de um objeto apoiado sobre a
+    # superfície. Só o bastante para a textura parar de disputar detalhe com o
+    # conteúdo da tela — borrar mais apagaria o veio da madeira e devolveria o
+    # retângulo uniforme que a cama desenhada produzia.
+    sigma = max(1.0, min(largura, altura) * FUNDO_DESFOQUE_FRAC)
     img = img.filter(ImageFilter.GaussianBlur(sigma))
-    img = ImageEnhance.Color(img).enhance(CAMA_SATURACAO)
-    img = ImageEnhance.Brightness(img).enhance(CAMA_BRILHO)
+    img = ImageEnhance.Color(img).enhance(FUNDO_SATURACAO)
+    img = ImageEnhance.Brightness(img).enhance(FUNDO_BRILHO)
     img = img.convert("RGBA")
 
     # Vinheta: escurece as bordas e empurra o olho para o centro, onde está o
-    # aparelho. O branco da estampa é claro, e sem isto a faixa de cama que
-    # sobra em volta do celular brilha mais que a tela.
+    # aparelho. Vale mesmo com uma foto escura como a madeira — a vinheta é o
+    # que separa a moldura do quadro da faixa de fundo em volta do celular.
     mascara = Image.new("L", (largura, altura), 255)
     ImageDraw.Draw(mascara).ellipse(
         [round(-largura * 0.10), round(-altura * 0.06),
@@ -331,7 +337,7 @@ def _desenhar_cama(largura: int, altura: int) -> Image.Image:
     )
     mascara = mascara.filter(
         ImageFilter.GaussianBlur(max(20, min(largura, altura) * 0.16))
-    ).point(lambda v: round(v * CAMA_VINHETA))
+    ).point(lambda v: round(v * FUNDO_VINHETA))
     img.paste(Image.new("RGBA", (largura, altura), (0, 0, 0, 255)), (0, 0), mascara)
     return img
 
@@ -344,7 +350,7 @@ def _desenhar_trilho(
 
     Gradiente vertical (claro em cima, escuro embaixo) mais dois reflexos: o
     especular forte na aresta de cima, que é de onde vem a luz, e um reflexo
-    fraco na de baixo, que é a luz da colcha voltando no metal. É esse par que
+    fraco na de baixo, que é a luz da superfície voltando no metal. É esse par que
     faz a borda ler como peça de alumínio em vez de contorno desenhado.
     """
     tam = img.size
@@ -438,7 +444,7 @@ def gerar_cenario_celular(
     raio_corpo = raio_tela + bezel
     raio_fora = raio_corpo + trilho
 
-    img = _desenhar_cama(largura, altura)
+    img = _desenhar_fundo(largura, altura)
 
     corpo = [
         tela_x - bezel,
@@ -451,8 +457,8 @@ def gerar_cenario_celular(
     ]
 
     # Sombra em duas camadas: a de CONTATO, curta e escura, que gruda o
-    # aparelho no tecido, e a AMBIENTE, larga e difusa, que dá o peso. Só a
-    # ampla, como era antes, fazia o celular flutuar sobre a colcha.
+    # aparelho na superfície, e a AMBIENTE, larga e difusa, que dá o peso. Só a
+    # ampla, como era antes, fazia o celular flutuar sobre o fundo.
     espessura = bezel + trilho
     for desloc, expansao, opacidade, sigma in (
         (espessura * 2.4, espessura * 0.6, 130, espessura * 2.6),

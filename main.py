@@ -75,8 +75,8 @@ Fluxo:
     narração falou. São a ÚNICA fonte de "big number" na tela: os infográficos
     que o ffmpeg montava a partir de PNGs do Pillow foram removidos em
     2026-08-04. Cartelas e figuras entram e saem pelo CARROSSEL (item 12).
-12. ffmpeg monta TUDO DENTRO DA TELA DE UM CELULAR APOIADO NUMA CAMA
-    (cenario.py, sobre a foto fundo-cama.png). A ORIENTAÇÃO DO APARELHO VEM DO
+12. ffmpeg monta TUDO DENTRO DA TELA DE UM CELULAR APOIADO NUMA SUPERFÍCIE
+    (cenario.py, sobre a foto fundo.png). A ORIENTAÇÃO DO APARELHO VEM DO
     MATERIAL, não do quadro: clipe horizontal deita o celular mesmo num Short
     vertical, clipe vertical o levanta mesmo no 16:9 (orientacao_dominante, que
     pesa cada clipe pelo tempo de tela). Fundo = o próprio clipe borrado
@@ -84,7 +84,7 @@ Fluxo:
     curto + legendas grandes (Archivo Black, altura levemente reduzida) +
     crédito de reprodução no canto superior direito da tela ("Reprodução
     Imagem: X" + conta do post). Com o celular deitado num Short a legenda
-    desce para a cama, abaixo do aparelho. As cartelas e as figuras entram por
+    desce para o fundo, abaixo do aparelho. As cartelas e as figuras entram por
     um CARROSSEL de duas posições: o conteúdo desliza para a esquerda e a
     imagem ocupa a tela; no fim da janela ela desliza de volta e o vídeo
     retorna. SEM música de fundo.
@@ -509,7 +509,7 @@ def main() -> None:
             pasta / "legendas.ass",
             intervalos_imagens=intervalos_imagens(sobreposicoes, duracao),
             # Com o celular DEITADO num Short (clipe horizontal), a tela vira
-            # uma faixa baixa e a legenda desce para a cama, abaixo do
+            # uma faixa baixa e a legenda desce para o fundo, abaixo do
             # aparelho — dentro da tela ela cobriria o clipe inteiro.
             area=area_legenda(largura, altura, aparelho_em_pe),
         )

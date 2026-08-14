@@ -15,11 +15,11 @@ posicionada contra uma ÁREA dada, não contra o quadro: `area` traz o retângul
 e dele saem o tamanho da fonte, as margens laterais e a altura da faixa
 inferior. Quem decide o retângulo é `cenario.area_legenda`, e ele é a TELA DO
 APARELHO na maior parte dos casos — sem isso a palavra transbordaria do celular
-e cairia sobre a cama.
+e cairia sobre o fundo.
 
 A exceção é o Short com o celular DEITADO (clipe horizontal, desde 2026-08-10):
 ali a tela tem ~440px de altura e a legenda dentro dela cobriria o clipe
-inteiro, então a área passa a ser a faixa de CAMA abaixo do aparelho — com o
+inteiro, então a área passa a ser a faixa de FUNDO abaixo do aparelho — com o
 rodapé do quadro reservado, porque é onde o Shorts e o TikTok desenham a
 própria interface.
 """

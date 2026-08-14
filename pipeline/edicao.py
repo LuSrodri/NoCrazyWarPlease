@@ -11,9 +11,10 @@ limpo entre si (corte editorial, sem deslizes). A narração TTS (sem silêncios
 @usuario" do post de origem) fica no canto superior direito da TELA enquanto o
 clipe daquela conta está nela.
 
-MOLDURA DE SMARTPHONE SOBRE UMA CAMA (2026-08-09, pedido do usuário). Nada
-ocupa mais o quadro inteiro: o clipe, as cartelas e as figuras aparecem dentro
-da TELA de um celular apoiado numa cama (cenario.py), nos DOIS formatos.
+MOLDURA DE SMARTPHONE SOBRE UMA SUPERFÍCIE (2026-08-09, pedido do usuário).
+Nada ocupa mais o quadro inteiro: o clipe, as cartelas e as figuras aparecem
+dentro da TELA de um celular apoiado numa superfície (cenario.py), nos DOIS
+formatos — a foto de fundo é escolha do usuário (`fundo.png`), hoje madeira.
 Substituiu a sala de estar com TV, que só o formato longo usava. A área útil do
 clipe passa a ser o retângulo da TELA — o fundo borrado preenche a tela quando
 o clipe não tem a proporção dela, e o PNG do cenário entra por cima recortando
@@ -424,7 +425,7 @@ def montar_video(
     formato: str = "curto",
     aparelho_em_pe: bool | None = None,
 ) -> Path:
-    """Monta o vídeo final: celular sobre a cama, com o clipe do X na tela.
+    """Monta o vídeo final: celular sobre a superfície, com o clipe do X na tela.
 
     `sobreposicoes`: [{"caminho": Path, "inicio_frac": float|None,
     "fim_frac": float|None, "conta": str, "representacao": bool}, ...] —
@@ -474,7 +475,7 @@ def montar_video(
         (cartelas or []) + (figuras or []), key=lambda c: float(c["inicio_s"])
     )
 
-    # Celular sobre a cama: a área útil de TUDO passa a ser o retângulo da tela,
+    # Celular sobre a superfície: a área útil de TUDO passa a ser o retângulo da tela,
     # e a orientação do aparelho vem dos clipes que vão aparecer nele.
     if aparelho_em_pe is None:
         aparelho_em_pe = orientacao_dominante(
