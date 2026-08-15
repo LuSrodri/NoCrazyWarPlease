@@ -168,7 +168,7 @@ from pipeline.zernio import credenciais_ausentes as zernio_credenciais_ausentes
 from pipeline.zernio import publicar as publicar_tiktok
 from pipeline.youtube import autenticar as autenticar_youtube
 from pipeline.youtube import publicar as publicar_youtube
-from pipeline.youtube import top_retencao, ultimos_publicados
+from pipeline.youtube import anexar_engajamento, top_retencao, ultimos_publicados
 
 
 def _slug(texto: str, limite: int = 40) -> str:
@@ -252,7 +252,11 @@ def main() -> None:
     # Leituras do canal PRIMEIRO (fail-fast): se as credenciais do YouTube
     # estiverem quebradas, aborta antes de qualquer chamada paga (X, OpenAI) —
     # e sem os recentes (com as métricas) a seleção pela audiência é cega.
-    recentes = ultimos_publicados(cfg, n=100)
+    # `anexar_engajamento` cola em cada vídeo a taxa de "viewed vs swiped away"
+    # da Analytics — é dela que sai a prioridade por tema na seleção da pauta
+    # (escritor.PISO_ENGAJAMENTO). Ela e `top_retencao` dividem uma única
+    # leitura da Analytics, então a segunda chamada não custa round-trip.
+    recentes = anexar_engajamento(cfg, ultimos_publicados(cfg, n=100))
     campeoes = top_retencao(cfg, n=6)
 
     trends = classificar_trends(cfg, coletar_trends(cfg))

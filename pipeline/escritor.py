@@ -94,6 +94,7 @@ from .config import (
     Config,
 )
 from .seo import limpar_tags, resumo_para_prompt
+from .youtube import PISO_ENGAJAMENTO
 
 # Ritmo da narração em palavras por segundo do ÁUDIO FINAL, a VELOCIDADE
 # NORMAL (1.0x). "Final" é o ponto todo: é o áudio DEPOIS da aceleração e
@@ -188,6 +189,23 @@ TOPICOS_MAX = 5
 # Shorts caírem, esta é a primeira alavanca a revisar (RODIZIO_SHORTS_TEMAS=0
 # desliga o rodízio inteiro).
 RODIZIO_SHORTS_TEMAS = 1
+# PRIORIDADE POR ENGAJAMENTO (2026-08-15, pedido do usuário): "priorizar os
+# assuntos com mais de 56% de engajamento (swipe-away)". O piso em si mora em
+# `youtube.PISO_ENGAJAMENTO`, junto da métrica que o produz; aqui fica o que
+# torna a regra aplicável a um ASSUNTO e não a um vídeo.
+#
+# O engajamento é medido por vídeo, mas o pedido é sobre assunto — então a taxa
+# é AGREGADA por macrotema, somando engagedViews e views de todos os vídeos
+# daquele tema e dividindo no fim. Somar os números crus, e não tirar média das
+# taxas: média de médias deixa um vídeo de 30 views pesar igual a um de 30 mil,
+# que é exatamente o erro que o piso existe para evitar.
+#
+# PISO_VIEWS_MACROTEMA é a base estatística mínima para o tema ser considerado
+# MEDIDO. Sem ele, um macrotema com um único vídeo de 12 views e 60% de
+# engajamento (7 pessoas) passaria a mandar na pauta do canal. Tema não medido
+# não entra na prioridade nem é penalizado por ela — ele fica de fora da conta,
+# porque "não sabemos" não é "vai mal".
+PISO_VIEWS_MACROTEMA = 100
 
 ESQUEMA_SELECAO = {
     "name": "selecao_trend",
@@ -893,6 +911,20 @@ aos posts do X da trend (até 3 clipes; nenhuma foto estática). Todas as
 candidatas listadas têm pelo menos 1 post com clipe, mas em empate prefira a
 que tem MAIS clipes e o material em vídeo mais forte (veja "apelo visual").
 
+ENGAJAMENTO (VIEWED VS SWIPED AWAY) — A PRIMEIRA RÉGUA DE AUDIÊNCIA: você
+recebe, por tema, quantos por cento de quem viu o Short no feed passou dos
+segundos iniciais em vez de deslizar para o próximo. É a métrica que decide a
+distribuição no Shorts, e o piso deste canal é o número marcado no bloco
+"ENGAJAMENTO POR TEMA". Tema ACIMA do piso é o que o feed engole; tema abaixo é
+o que ele cospe, por melhor que o assunto pareça.
+O PIPELINE JÁ APLICOU ESSE CORTE ANTES DE VOCÊ, quando havia número para
+aplicá-lo: se existem candidatas de tema acima do piso, só elas chegaram até
+aqui. Você não precisa refazer a conta — use o bloco para entender POR QUE
+estas candidatas estão na mesa e, dentro delas, preferir a que mais se parece
+com o que o tema campeão vinha entregando (mesmo tipo de tensão, de promessa e
+de gancho). Quando o bloco disser que nenhum tema tem base medida, ignore-o: aí
+a régua volta a ser só as views por hora e os campeões de retenção.
+
 AUDIÊNCIA — O QUE DECIDE ENTRE AS ELEGÍVEIS: escolha a trend com a
 maior chance de performar com a audiência DESTE canal, e a régua são os
 NÚMEROS listados, não opinião editorial. Os vídeos com o maior VIEWS/H e os
@@ -985,7 +1017,13 @@ CRITÉRIOS, nesta ordem:
    de comércio, efetivo ou prazo.
 4. AUDIÊNCIA: entre as candidatas que passam nos anteriores, escolha a que mais se
    parece com o que o público DESTE canal assiste, segundo os números
-   listados. Repetir o tipo de assunto que performa é bem-vindo.
+   listados. Repetir o tipo de assunto que performa é bem-vindo. A primeira
+   régua aqui é o bloco "ENGAJAMENTO POR TEMA" (viewed vs swiped away — quantos
+   por cento passaram dos segundos iniciais em vez de deslizar): o pipeline já
+   deixou na mesa só as candidatas dos temas acima do piso quando havia número
+   para isso, então use o bloco para preferir, entre elas, a que repete o tipo
+   de tensão e de promessa do tema campeão. Sem base medida, o bloco não vale
+   régua e a decisão volta às views por hora.
 5. MATERIAL EM VÍDEO: o vídeo é montado SOMENTE com os clipes anexados aos
    posts do X da trend (até {max_clipes} clipes, nenhuma foto estática). Em
    empate, vence a candidata com MAIS posts com clipe.
@@ -1050,6 +1088,45 @@ mesma coisa, o nosso diz o que os cinco deixaram de fora (o número exato, quem
 paga a conta, o efeito na rota ou no preço). Copiar título, frase ou nome de canal de
 qualquer um deles é PROIBIDO.\
 """
+
+# REDAÇÃO (2026-08-15, pedido do usuário): "monte um roteiro factual, palavras
+# simples, e assertivo e direto". Fica num constante próprio, como o SEO/GEO,
+# porque vale igual nos dois formatos — o que muda entre o Short e o longo é a
+# estrutura e a densidade, nunca o jeito de escrever a frase.
+#
+# O bloco é concatenado DENTRO das instruções e passa pelo .format() delas: não
+# escreva chave literal aqui.
+INSTRUCOES_REDACAO = """
+REDAÇÃO — FACTUAL, SIMPLES, ASSERTIVA E DIRETA. Estas quatro regras valem sobre
+qualquer preferência de estilo, e são o teste final antes de entregar o texto:
+
+- FACTUAL: cada frase carrega um fato do material recebido — quem fez, o quê,
+  onde, quanto, quando. Frase que não carrega fato não entra, por mais bonita
+  que seja. Adjetivo que não é dado ("enorme", "dramático", "histórico",
+  "sem precedentes") sai e o NÚMERO entra no lugar dele. Nada de conclusão que
+  o material não sustenta.
+- SIMPLES: a palavra comum sempre que ela diz a mesma coisa que a rara
+  ("acordo", não "entendimento multilateral"; "corta", não "promove a redução
+  de"). Uma ideia por frase, na ordem sujeito-verbo-objeto, em voz ATIVA: quem
+  fez a coisa é o sujeito. Sem oração encaixada dentro de oração — se a frase
+  precisa de duas vírgulas para respirar, vire duas frases. Simples não é bobo:
+  quando a palavra comum NÃO diz a mesma coisa, vale a palavra certa (a regra
+  de VOCABULÁRIO acima manda nesse caso).
+- ASSERTIVA: diga o fato e siga. PROIBIDO hedge de estilo — "de certa forma",
+  "pode-se dizer que", "em certa medida", "talvez", "aparentemente", "de
+  alguma maneira" — e verbo de escapatória no futuro do pretérito ("poderia vir
+  a", "seria capaz de"). Verbo no presente ou no passado simples.
+- DIRETA: sem preâmbulo e sem meta-fala ("vamos entender", "antes é preciso
+  dizer", "neste vídeo", "como veremos"). Toda frase começa pela coisa
+  concreta, não pela circunstância. Se dá para cortar as três primeiras
+  palavras de uma frase sem perder informação, corte.
+
+ATENÇÃO — ISTO NÃO AFROUXA A NEUTRALIDADE, E NO CONFLITO A NEUTRALIDADE VENCE.
+Ser assertivo é cortar o hedge de ESTILO, nunca a ATRIBUIÇÃO: "segundo a
+Reuters", "o Ministério da Defesa russo diz" e "não confirmado" continuam
+OBRIGATÓRIOS onde a regra de neutralidade os exige. A diferença é que a frase
+atribuída também é dita de forma direta: "a Reuters confirmou o ataque com duas
+fontes" — nunca "haveria indícios de que um ataque poderia ter ocorrido"."""
 
 INSTRUCOES_ROTEIRO = """\
 Você é roteirista de vídeos curtos (YouTube Shorts/Reels/TikTok) de ANÁLISE de
@@ -1124,6 +1201,7 @@ teto de preço), não o infantilize: entregue o efeito concreto em meia frase
 ("Artigo 5º — a cláusula que obriga os 32 países da OTAN a reagir juntos") e
 siga. Nome de sistema de arma, de unidade militar ou de resolução da ONU só
 entra se for o assunto do vídeo, e sempre traduzido na primeira vez.
+""" + INSTRUCOES_REDACAO + """
 
 ESTRUTURA OBRIGATÓRIA — CINCO BLOCOS (narração de ~{duracao}s):
 1. PERGUNTA ESQUISITA (0-2s): abra com uma PERGUNTA concreta, estranha e
@@ -1342,6 +1420,7 @@ resolução, sigla) é permitido — no máximo TRÊS no vídeo inteiro — mas 
 traduzido em meia frase na primeira vez que aparece ("o Artigo 5º, a cláusula
 que obriga os 32 países da OTAN a reagir juntos", "o imposto que encarece o
 produto importado"). Sem a tradução, não use o nome.
+""" + INSTRUCOES_REDACAO + """
 
 ESTRUTURA OBRIGATÓRIA — cinco blocos, nesta ordem, sem anunciar a estrutura
 (PROIBIDO "neste vídeo vamos ver três pontos"):
@@ -1564,14 +1643,101 @@ def _resumo_campeoes(campeoes: list[dict] | None) -> str:
     for c in campeoes:
         partes = []
         if c.get("retencao_gancho") is not None:
-            partes.append(f"gancho segura {c['retencao_gancho']}% de quem abre")
+            partes.append(
+                f"{c['retencao_gancho']}% assistiram / "
+                f"{c.get('swipe_away', 100 - c['retencao_gancho'])}% passaram direto"
+            )
         partes.append(f"assistem em média {c.get('retencao_media', '?')}% do vídeo")
         partes.append(f"{c.get('views', '?')} views")
-        linhas.append(f"- {c.get('titulo', '')} ({'; '.join(partes)})")
+        marca = " [ACIMA DO PISO]" if c.get("acima_do_piso") else ""
+        linhas.append(f"- {c.get('titulo', '')}{marca} ({'; '.join(partes)})")
     return (
         "\n\nVídeos CAMPEÕES DE RETENÇÃO deste canal, de todos os tempos (o tipo "
         "de vídeo que o público assiste até o fim — priorize trends com este "
-        "DNA):\n" + "\n".join(linhas)
+        f"DNA). 'Assistiram' é o engajamento do Shorts: de cada 100 vezes que o "
+        "vídeo apareceu no feed e rodou, quantas passaram dos segundos iniciais "
+        f"em vez de deslizar para o próximo. O piso do canal é "
+        f"{PISO_ENGAJAMENTO}%:\n" + "\n".join(linhas)
+    )
+
+
+def _engajamento_por_macrotema(
+    videos_recentes: list[dict] | None, macros_recentes: list[str]
+) -> dict[str, dict]:
+    """Taxa de engajamento (viewed vs swiped away) AGREGADA por macrotema.
+
+    O engajamento chega medido por VÍDEO (``youtube.anexar_engajamento``), mas
+    a régua que o canal usa é por ASSUNTO: a pergunta não é "este vídeo segurou
+    o feed", é "o feed engole este tema". Então os números crus de cada vídeo
+    são somados dentro do macrotema e a divisão acontece uma vez só no fim —
+    ver o comentário de PISO_VIEWS_MACROTEMA sobre por que não é média de
+    médias.
+
+    Vídeo sem métrica (publicado há poucas horas; a Analytics atrasa) e vídeo
+    rotulado "outro" (o descarte da classificação, que junta coisas sem relação
+    entre si) ficam fora da conta.
+    """
+    agregado: dict[str, dict] = {}
+    for video, macro in zip(videos_recentes or [], macros_recentes or []):
+        if not macro or macro == "outro":
+            continue
+        views = video.get("views_medidas")
+        engajadas = video.get("views_engajadas")
+        if not views or engajadas is None:
+            continue
+        entrada = agregado.setdefault(
+            macro, {"views": 0, "engajadas": 0, "videos": 0}
+        )
+        entrada["views"] += views
+        entrada["engajadas"] += engajadas
+        entrada["videos"] += 1
+
+    for entrada in agregado.values():
+        taxa = entrada["engajadas"] / entrada["views"] * 100
+        entrada["engajamento"] = round(taxa, 1)
+        entrada["swipe_away"] = round(100 - taxa, 1)
+        entrada["medido"] = entrada["views"] >= PISO_VIEWS_MACROTEMA
+    return agregado
+
+
+def _macrotemas_prioritarios(engajamento: dict[str, dict]) -> list[str]:
+    """Os macrotemas MEDIDOS que estão acima do piso, do melhor para o pior."""
+    acima = [
+        macro
+        for macro, e in engajamento.items()
+        if e["medido"] and e["engajamento"] >= PISO_ENGAJAMENTO
+    ]
+    return sorted(acima, key=lambda m: engajamento[m]["engajamento"], reverse=True)
+
+
+def _resumo_engajamento(engajamento: dict[str, dict]) -> str:
+    """Bloco do prompt com o engajamento por tema e o piso do canal."""
+    if not engajamento:
+        return ""
+    ordenado = sorted(
+        engajamento.items(), key=lambda kv: kv[1]["engajamento"], reverse=True
+    )
+    linhas = []
+    for macro, e in ordenado:
+        if not e["medido"]:
+            situacao = "base pequena demais para valer de régua"
+        elif e["engajamento"] >= PISO_ENGAJAMENTO:
+            situacao = "ACIMA DO PISO — PRIORIDADE"
+        else:
+            situacao = "abaixo do piso"
+        linhas.append(
+            f"- {macro}: {e['engajamento']}% assistiram / {e['swipe_away']}% "
+            f"passaram direto ({e['videos']} vídeo(s), {e['views']} views) "
+            f"— {situacao}"
+        )
+    return (
+        "\n\nENGAJAMENTO POR TEMA (viewed vs swiped away), somando os vídeos de "
+        "cada macrotema deste canal. É a métrica que decide a distribuição no "
+        "Shorts: quem passa direto no primeiro segundo não conta como audiência, "
+        "e um tema que o feed rejeita no gancho não é salvo por roteiro nenhum "
+        f"depois. O PISO DESTE CANAL É {PISO_ENGAJAMENTO}% de engajamento (ou "
+        f"seja, no máximo {100 - PISO_ENGAJAMENTO}% de swipe-away):\n"
+        + "\n".join(linhas)
     )
 
 
@@ -1913,6 +2079,48 @@ def selecionar_trend(
                     "tema do que não publicar."
                 )
 
+    # PRIORIDADE POR ENGAJAMENTO (2026-08-15): os macrotemas cujo swipe-away
+    # deixa o engajamento ACIMA de PISO_ENGAJAMENTO ficam com a disputa só para
+    # eles. É um portão em CÓDIGO, e não um pedido no prompt, pelo mesmo motivo
+    # do rodízio: instrução de prompt sobre número compete com todas as outras
+    # instruções do prompt, e a que o dono do canal fixou não é para competir.
+    #
+    # Vem DEPOIS do rodízio de propósito. As duas regras podem se cruzar (o tema
+    # de melhor engajamento pode ser justamente o do Short anterior), e a ordem
+    # decide qual cede: assim o rodízio corta primeiro e a prioridade escolhe o
+    # melhor tema ENTRE OS QUE SOBRARAM — dois Shorts seguidos do mesmo assunto
+    # continuam proibidos, que é a regra mais antiga e mais estreita.
+    #
+    # O portão CEDE quando zeraria as candidatas, e cede também quando nenhum
+    # tema tem base medida (canal novo, vídeo de poucas horas): sem número não
+    # há prioridade a aplicar, e trocar um vídeo bom por nenhum vídeo é um preço
+    # que uma preferência não paga. O veto a repetição, logo abaixo, segue sendo
+    # o único absoluto.
+    engajamento_temas = _engajamento_por_macrotema(videos_recentes, macros_recentes)
+    prioritarios = _macrotemas_prioritarios(engajamento_temas)
+    if prioritarios:
+        priorizadas = [t for t in candidatas if t.get("macrotema") in prioritarios]
+        if priorizadas:
+            print(
+                f"[engajamento] {len(priorizadas)} de {len(candidatas)} "
+                f"candidata(s) são de tema(s) acima do piso de "
+                f"{PISO_ENGAJAMENTO}% ({', '.join(prioritarios)}) — a disputa "
+                "fica com elas."
+            )
+            candidatas = priorizadas
+        else:
+            print(
+                f"[engajamento] nenhuma candidata é dos tema(s) acima do piso "
+                f"({', '.join(prioritarios)}); a prioridade cede — melhor "
+                "publicar fora do tema campeão do que não publicar."
+            )
+    else:
+        print(
+            f"[engajamento] nenhum macrotema com base medida acima de "
+            f"{PISO_ENGAJAMENTO}% de engajamento — a seleção segue só pelos "
+            "outros sinais de audiência."
+        )
+
     janela_repeticao = (
         JANELA_REPETICAO_HORAS_LONGO if longo else JANELA_REPETICAO_HORAS
     )
@@ -1932,6 +2140,7 @@ def selecionar_trend(
             AVISO_DADOS_EXTERNOS
             + "\n\nTrends mais faladas do X hoje:\n"
             + _resumo_trends(candidatas)
+            + _resumo_engajamento(engajamento_temas)
             + _resumo_campeoes(campeoes)
             + _resumo_recentes(videos_recentes, macros_recentes)
         )
@@ -2041,13 +2250,23 @@ def _resumo_estilo(
         partes += [f"- {v.get('titulo', '')} ({v['views']} views)" for v in flop]
     if campeoes:
         partes.append(
-            "Campeões de retenção (o público assiste até o fim vídeos assim):"
+            "Campeões de retenção (o público assiste até o fim vídeos assim). "
+            "'Passaram direto' é o swipe-away: quantos por cento deslizaram "
+            "para o próximo Short nos segundos iniciais — é o gancho e o "
+            "primeiro clipe que decidem esse número, então calibre a PERGUNTA "
+            f"de abertura pelos que ficaram abaixo de {100 - PISO_ENGAJAMENTO}%:"
         )
-        partes += [
-            f"- {c.get('titulo', '')} "
-            f"(assistem em média {c.get('retencao_media', '?')}% do vídeo)"
-            for c in campeoes
-        ]
+        for c in campeoes:
+            swipe = (
+                f", {c['swipe_away']}% passaram direto"
+                if c.get("swipe_away") is not None
+                else ""
+            )
+            partes.append(
+                f"- {c.get('titulo', '')} "
+                f"(assistem em média {c.get('retencao_media', '?')}% do "
+                f"vídeo{swipe})"
+            )
     return "\n".join(partes)
 
 

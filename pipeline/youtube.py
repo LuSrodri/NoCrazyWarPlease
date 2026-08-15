@@ -66,6 +66,24 @@ ANALYTICS_URL = "https://youtubeanalytics.googleapis.com/v2/reports"
 # retenção estatisticamente sem valor (3 amigos assistindo até o fim = 100%).
 VIEWS_MINIMO_RETENCAO = 50
 
+# PISO DE ENGAJAMENTO (2026-08-15) — o "viewed vs swiped away" do Shorts.
+#
+# A YouTube Analytics API NÃO expõe uma métrica chamada "swipe away": o que ela
+# dá é `engagedViews`, definida como "o número de vezes que os vídeos do canal
+# foram vistos ALÉM DOS SEGUNDOS INICIAIS". É exatamente o numerador do painel
+# "Assistiram x Passaram direto" do Studio, e a conta que fecha os dois lados é
+# uma só:
+#
+#     engajamento = engagedViews / views        (assistiram)
+#     swipe_away  = 100% - engajamento          (passaram direto)
+#
+# Ou seja: o piso de 56% de engajamento é o mesmo que um teto de 44% de
+# swipe-away. É o número que manda no Shorts — quem passa direto no primeiro
+# segundo não conta como distribuição, e um assunto que o feed rejeita no
+# gancho não é salvo por roteiro nenhum depois. Por isso ele entra na SELEÇÃO
+# da pauta (`escritor.selecionar_trend`), e não só no ranking dos campeões.
+PISO_ENGAJAMENTO = 56
+
 
 def _refresh_token_do_publico(cfg: Config) -> str:
     """Refresh token do canal certo: inglês quando publico == 'usa'."""
@@ -210,11 +228,14 @@ def ultimos_publicados(cfg: Config, n: int = 100) -> list[dict]:
         videos = []
         for item in itens_lista:
             snippet = item.get("snippet", {})
-            st = estatisticas.get(
-                item.get("contentDetails", {}).get("videoId", ""), {}
-            )
+            video_id = item.get("contentDetails", {}).get("videoId", "")
+            st = estatisticas.get(video_id, {})
             videos.append(
                 {
+                    # O id é a chave que casa o vídeo com a linha da Analytics
+                    # em `anexar_engajamento` — sem ele não dá para saber qual
+                    # macrotema o feed está engolindo e qual ele passa direto.
+                    "video_id": video_id,
                     "titulo": snippet.get("title", ""),
                     "descricao": snippet.get("description", ""),
                     "data": snippet.get("publishedAt", "")[:16],
@@ -232,33 +253,50 @@ def ultimos_publicados(cfg: Config, n: int = 100) -> list[dict]:
         ) from erro
 
 
-def top_retencao(cfg: Config, n: int = 6) -> list[dict]:
-    """Top `n` vídeos do canal em retenção, de todos os tempos.
+# Uma execução lê a Analytics duas vezes (os campeões de retenção e o
+# engajamento por vídeo) e as duas leituras são A MESMA consulta. O cache é por
+# público (BR/USA nunca rodam no mesmo processo, mas a chave deixa isso
+# explícito) e vive só o processo do cron — não há estado entre execuções.
+_CACHE_ANALYTICS: dict[str, list[dict]] = {}
+# O access token da leitura acompanha as linhas no cache. Não é economia de
+# cota (renovar é de graça), é de round-trip: sem ele `top_retencao` faria um
+# POST ao oauth2 só para buscar os títulos dos campeões. O `publicar()` do fim
+# da execução continua renovando o seu — o upload pode acontecer 10 minutos
+# depois, e ali um token perto de expirar custaria caro.
+_CACHE_TOKEN_LEITURA: dict[str, str] = {}
 
-    Retenção combina duas métricas da YouTube Analytics API: a taxa de gancho
-    (``engagedViews/views`` — quem passou dos segundos iniciais vs quem ignorou
-    o Short no feed) e a profundidade (``averageViewPercentage`` — quanto do
-    vídeo quem ficou assistiu). Vídeos abaixo de VIEWS_MINIMO_RETENCAO views
-    ficam fora do ranking (retenção sem base estatística).
+
+def _linhas_analytics(cfg: Config) -> list[dict]:
+    """Uma linha por vídeo do canal: views, engagedViews e retenção média.
+
+    É a leitura crua da YouTube Analytics API que alimenta TUDO que depende de
+    retenção: os campeões (``top_retencao``) e a taxa de engajamento colada em
+    cada vídeo recente (``anexar_engajamento``). Fica num helper com cache
+    porque as duas precisam exatamente da mesma consulta, e pagá-la duas vezes
+    só gastaria cota e mais um round-trip por execução.
 
     Requer o escopo ``yt-analytics.readonly`` no refresh token; tokens antigos
     precisam de reautorização (``--auth-youtube``/``--auth-youtube-usa``).
-    Qualquer falha ABORTA a execução (fail-fast): os campeões guiam a seleção
-    da trend, e rodar sem eles degrada o vídeo silenciosamente. Canal novo sem
+    Qualquer falha ABORTA a execução (fail-fast): a retenção guia a seleção da
+    pauta, e rodar sem ela degrada o vídeo silenciosamente. Canal novo sem
     métricas devolve lista vazia (não é erro).
     """
+    if cfg.publico in _CACHE_ANALYTICS:
+        return _CACHE_ANALYTICS[cfg.publico]
+
     refresh = _refresh_token_do_publico(cfg)
     if not (cfg.youtube_client_id and cfg.youtube_client_secret and refresh):
         canal = "inglês (-usa)" if cfg.publico == "usa" else "português"
         flag = "--auth-youtube-usa" if cfg.publico == "usa" else "--auth-youtube"
         raise SystemExit(
             f"Credenciais do YouTube do canal {canal} ausentes — sem elas não "
-            "dá para ler os campeões de retenção que guiam a seleção. "
+            "dá para ler a retenção do canal, que guia a seleção da pauta. "
             f"Configure o .env e rode 'python main.py {flag}'."
         )
 
     try:
         token = _renovar_access_token(cfg, refresh)
+        _CACHE_TOKEN_LEITURA[cfg.publico] = token
         headers = {"Authorization": f"Bearer {token}"}
 
         params = {
@@ -281,15 +319,15 @@ def top_retencao(cfg: Config, n: int = 6) -> list[dict]:
             if "has not been used in project" in resp.text or "disabled" in resp.text:
                 raise SystemExit(
                     "A YouTube Analytics API está desligada no projeto do "
-                    "Google Cloud das credenciais — sem ela não há campeões de "
-                    "retenção para guiar a seleção. Ative em "
+                    "Google Cloud das credenciais — sem ela não há retenção "
+                    "nem engajamento para guiar a seleção. Ative em "
                     "https://console.developers.google.com/apis/api/"
                     "youtubeanalytics.googleapis.com/overview e rode de novo."
                 )
             raise SystemExit(
                 "Sem permissão para a YouTube Analytics (o refresh token não "
-                "tem o escopo yt-analytics.readonly) — sem ela não há campeões "
-                "de retenção para guiar a seleção. Reautorize com "
+                "tem o escopo yt-analytics.readonly) — sem ela não há retenção "
+                "nem engajamento para guiar a seleção. Reautorize com "
                 "'python main.py --auth-youtube' (e --auth-youtube-usa)."
             )
         if resp.status_code != 200:
@@ -298,65 +336,154 @@ def top_retencao(cfg: Config, n: int = 6) -> list[dict]:
         corpo = resp.json()
         colunas = [c.get("name") for c in corpo.get("columnHeaders", [])]
         linhas = [dict(zip(colunas, valores)) for valores in corpo.get("rows") or []]
-        if not linhas:
-            return []
+    except Exception as erro:  # noqa: BLE001 — sem a retenção a seleção degrada
+        raise SystemExit(
+            "Falha ao ler a retenção do canal na YouTube Analytics — ela guia "
+            f"a seleção da trend; abortando: {erro}"
+        ) from erro
 
-        candidatos = [
-            r for r in linhas if float(r.get("views") or 0) >= VIEWS_MINIMO_RETENCAO
-        ] or linhas  # canal novo: sem vídeos acima do piso, usa o que houver
+    _CACHE_ANALYTICS[cfg.publico] = linhas
+    return linhas
 
-        def pontuacao(r: dict) -> float:
-            views = float(r.get("views") or 0)
-            gancho = (
-                float(r.get("engagedViews") or 0) / views
-                if views and "engagedViews" in r
-                else 1.0
-            )
-            profundidade = float(r.get("averageViewPercentage") or 0) / 100
-            return gancho * profundidade
 
-        top = sorted(candidatos, key=pontuacao, reverse=True)[:n]
+def _engajamento(linha: dict) -> float | None:
+    """Taxa de ENGAJAMENTO (%) de uma linha da Analytics — "assistiram".
 
-        # Títulos dos escolhidos (Data API), numa única chamada
+    ``engagedViews/views``: de cada 100 vezes que o Short apareceu e rodou,
+    quantas passaram dos segundos iniciais. O complemento (100 menos isto) é o
+    swipe-away, "passaram direto". Devolve ``None`` quando a conta não fecha —
+    vídeo sem views ou resposta sem ``engagedViews`` (a métrica não veio) —,
+    porque um zero mentiria dizendo que 100% passou direto.
+    """
+    views = float(linha.get("views") or 0)
+    if not views or "engagedViews" not in linha:
+        return None
+    return float(linha.get("engagedViews") or 0) / views * 100
+
+
+def anexar_engajamento(cfg: Config, videos: list[dict]) -> list[dict]:
+    """Cola em cada vídeo recente a sua taxa de engajamento (viewed vs swiped).
+
+    Recebe a lista de ``ultimos_publicados`` e devolve a MESMA lista, com três
+    campos a mais por vídeo quando a Analytics tem o dado dele:
+    ``engajamento`` e ``swipe_away`` (percentuais) e ``views_engajadas`` /
+    ``views_medidas`` (os números crus, que é o que permite AGREGAR por
+    macrotema em `escritor` sem inventar uma média de médias).
+
+    Vídeo sem linha na Analytics fica sem os campos, de propósito: são os
+    publicados nas últimas horas, que ainda não têm métrica (a Analytics
+    atrasa) — e ausência é a informação certa ali, não um zero.
+
+    As views daqui são as da ANALYTICS, não as da Data API que o vídeo já
+    carrega: as duas divergem por alguns por cento, e dividir engagedViews de
+    uma pela views da outra produziria uma taxa errada — às vezes acima de
+    100%.
+    """
+    linhas = {str(r.get("video", "")): r for r in _linhas_analytics(cfg)}
+    if not linhas:
+        return videos
+
+    medidos = 0
+    for video in videos:
+        linha = linhas.get(video.get("video_id") or "")
+        if not linha:
+            continue
+        taxa = _engajamento(linha)
+        if taxa is None:
+            continue
+        video["engajamento"] = round(taxa, 1)
+        video["swipe_away"] = round(100 - taxa, 1)
+        video["views_engajadas"] = int(float(linha.get("engagedViews") or 0))
+        video["views_medidas"] = int(float(linha.get("views") or 0))
+        medidos += 1
+
+    print(
+        f"[youtube] engajamento (viewed vs swiped away) medido em {medidos} de "
+        f"{len(videos)} vídeos recentes; piso do canal: {PISO_ENGAJAMENTO}%."
+    )
+    return videos
+
+
+def top_retencao(cfg: Config, n: int = 6) -> list[dict]:
+    """Top `n` vídeos do canal em retenção, de todos os tempos.
+
+    Retenção combina duas métricas da YouTube Analytics API: o ENGAJAMENTO
+    (``engagedViews/views`` — quem passou dos segundos iniciais vs quem passou
+    direto no feed) e a profundidade (``averageViewPercentage`` — quanto do
+    vídeo quem ficou assistiu). Vídeos abaixo de VIEWS_MINIMO_RETENCAO views
+    ficam fora do ranking (retenção sem base estatística).
+
+    O ranking é ordenado em DOIS níveis desde 2026-08-15: primeiro quem está
+    acima do PISO_ENGAJAMENTO, depois a nota de sempre (engajamento ×
+    profundidade). O piso é o critério que o dono do canal fixou, e um vídeo
+    que segura 80% de quem fica mas só é aberto por 30% do feed não é o DNA que
+    se quer copiar — ele descreve um público cativo, não um Short que ganha
+    distribuição.
+
+    Canal novo sem métricas devolve lista vazia (não é erro).
+    """
+    linhas = _linhas_analytics(cfg)
+    if not linhas:
+        return []
+
+    candidatos = [
+        r for r in linhas if float(r.get("views") or 0) >= VIEWS_MINIMO_RETENCAO
+    ] or linhas  # canal novo: sem vídeos acima do piso, usa o que houver
+
+    def pontuacao(r: dict) -> tuple[int, float]:
+        taxa = _engajamento(r)
+        gancho = 1.0 if taxa is None else taxa / 100
+        profundidade = float(r.get("averageViewPercentage") or 0) / 100
+        acima_do_piso = int(taxa is not None and taxa >= PISO_ENGAJAMENTO)
+        return (acima_do_piso, gancho * profundidade)
+
+    top = sorted(candidatos, key=pontuacao, reverse=True)[:n]
+
+    # Títulos dos escolhidos (Data API), numa única chamada. O token é o que
+    # `_linhas_analytics` acabou de usar, logo acima — reaproveitá-lo evita um
+    # POST ao oauth2 que não muda nada.
+    try:
+        token = _CACHE_TOKEN_LEITURA.get(cfg.publico) or _renovar_access_token(
+            cfg, _refresh_token_do_publico(cfg)
+        )
         ids = ",".join(str(r.get("video", "")) for r in top)
         detalhes = requests.get(
             VIDEOS_URL,
             params={"part": "snippet", "id": ids},
-            headers=headers,
+            headers={"Authorization": f"Bearer {token}"},
             timeout=60,
         )
-        titulos = {}
-        if detalhes.status_code == 200:
-            titulos = {
+        titulos = (
+            {
                 item["id"]: item.get("snippet", {}).get("title", "")
                 for item in detalhes.json().get("items", [])
             }
+            if detalhes.status_code == 200
+            else {}
+        )
+    except Exception as erro:  # noqa: BLE001 — sem título o campeão ainda serve
+        print(f"[aviso] Títulos dos campeões de retenção não vieram ({erro}).")
+        titulos = {}
 
-        campeoes = []
-        for r in top:
-            views = float(r.get("views") or 0)
-            gancho = (
-                round(float(r.get("engagedViews") or 0) / views * 100)
-                if views and "engagedViews" in r
-                else None
-            )
-            campeoes.append(
-                {
-                    "titulo": titulos.get(str(r.get("video")), str(r.get("video"))),
-                    "views": int(views),
-                    "retencao_gancho": gancho,
-                    "retencao_media": round(
-                        float(r.get("averageViewPercentage") or 0)
-                    ),
-                }
-            )
-        print(f"[youtube] {len(campeoes)} campeões de retenção carregados.")
-        return campeoes
-    except Exception as erro:  # noqa: BLE001 — sem os campeões a seleção degrada
-        raise SystemExit(
-            "Falha ao ler os campeões de retenção do canal — eles guiam a "
-            f"seleção da trend; abortando: {erro}"
-        ) from erro
+    campeoes = []
+    for r in top:
+        taxa = _engajamento(r)
+        campeoes.append(
+            {
+                "titulo": titulos.get(str(r.get("video")), str(r.get("video"))),
+                "views": int(float(r.get("views") or 0)),
+                "retencao_gancho": None if taxa is None else round(taxa),
+                "swipe_away": None if taxa is None else round(100 - taxa),
+                "acima_do_piso": taxa is not None and taxa >= PISO_ENGAJAMENTO,
+                "retencao_media": round(float(r.get("averageViewPercentage") or 0)),
+            }
+        )
+    acima = sum(1 for c in campeoes if c["acima_do_piso"])
+    print(
+        f"[youtube] {len(campeoes)} campeões de retenção carregados "
+        f"({acima} acima do piso de {PISO_ENGAJAMENTO}% de engajamento)."
+    )
+    return campeoes
 
 
 def _enviar_thumbnail(token: str, video_id: str, thumbnail: Path) -> None:
