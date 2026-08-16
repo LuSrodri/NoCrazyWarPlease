@@ -98,7 +98,7 @@ def _lotes_de_query(contas: list[str]) -> list[str]:
 
     O orçamento de caracteres reserva o espaço de SUFIXO_VIDEO além do de
     SUFIXO_BUSCA, porque o mesmo lote é reusado na passada `has:videos`. Com as
-    162 contas atuais fecham 7 lotes, o maior deles em 505 caracteres já com
+    200 contas atuais fecham 8 lotes, o maior deles em 511 caracteres já com
     os dois sufixos somados — sem a reserva ele estouraria o limite de 512 na
     passada de vídeo e o lote inteiro voltaria 400.
     """
@@ -402,8 +402,8 @@ def buscar_posts_com_video(cfg: Config, consulta: str) -> list[str]:
     """URLs de posts com clipe sobre o assunto, de QUALQUER conta do X.
 
     A coleta e a varredura `has:videos` só enxergam as contas do canal, então o
-    material fica limitado ao que essas 50 contas publicaram sobre ESTE fato —
-    que é o gargalo real do formato longo (vídeo não falta no X; falta vídeo
+    material fica limitado ao que essas contas publicaram sobre ESTE fato — que
+    é o gargalo real do formato longo (vídeo não falta no X; falta vídeo
     concentrado num mesmo acontecimento). Esta busca é aberta.
 
     Em troca, as fontes NÃO são curadas: entra conta desconhecida, telejornal
@@ -460,24 +460,47 @@ def _listar_posts(posts: list[dict]) -> str:
 
 
 INSTRUCOES_RESUMO = """\
-Você é curador de um canal de vídeos de ANÁLISE DE GEOPOLÍTICA. O canal trata
-cada pauta em formato EXPLICATIVO — análise ou educacional: o vídeo explica o
-que aconteceu, como funciona e por que importa.
+Você é curador de um canal de vídeos de ANÁLISE DE FATOS. O canal trata cada
+pauta em formato EXPLICATIVO — análise ou educacional: o vídeo explica o que
+aconteceu, como funciona e por que importa.
 
-DENTRO DO ESCOPO, e nada além dele: guerra e conflito armado, defesa e
-armamento, programa nuclear, inteligência e espionagem, diplomacia e tratados,
-sanções e guerra comercial, disputa por energia e recurso, fronteira e
-migração, e mudança de poder dentro de um país quando ela muda a posição dele
-no tabuleiro. Post que não é geopolítica NÃO vira trend deste canal, nem quando
-domina a conversa — lançamento de produto, resultado de empresa, treta de rede
-social e ciência sem disputa entre Estados ficam de fora. Um post de tecnologia
-ou de mercado só entra pela porta da geopolítica (o chip que virou controle de
+DENTRO DO ESCOPO, em cinco famílias:
+1. GEOPOLÍTICA (o núcleo do canal): guerra e conflito armado, defesa e
+   armamento, programa nuclear, inteligência e espionagem, diplomacia e
+   tratados, sanções e guerra comercial, disputa por energia e recurso,
+   fronteira e migração, e mudança de poder dentro de um país quando ela muda a
+   posição dele no tabuleiro;
+2. ACONTECIMENTO INTERNACIONAL de grande porte que não é disputa entre Estados:
+   acidente aéreo ou ferroviário, colapso de estrutura, surto de doença,
+   decisão judicial de repercussão mundial, morte de figura conhecida no mundo
+   todo;
+3. CRIME apurado: megaoperação policial, apreensão, prisão, denúncia ou
+   condenação, atentado, ataque armado, crime organizado, tráfico, fraude
+   bilionária, e a segurança pública em torno disso;
+4. ALERTA E DESASTRE AMBIENTAL OU CLIMÁTICO: terremoto, tsunami, erupção,
+   deslizamento, furacão, ciclone, tornado, ventania, temporal, enchente e
+   alagamento, seca, onda de calor, nevasca, incêndio florestal — e o ALERTA
+   OFICIAL emitido por autoridade (o alerta é ele mesmo um fato datado);
+5. RISCO AMBIENTAL de origem humana: vazamento de óleo ou químico, rompimento
+   de barragem, contaminação, acidente industrial ou nuclear.
+
+A RÉGUA QUE MANDA EM TODAS: o post tem de trazer um FATO — algo que ACONTECEU,
+com quem, onde, quando e, quando houver, o número, dito por fonte identificável
+(autoridade, veículo, órgão oficial). Ficam de FORA, por mais que dominem a
+conversa: opinião e thread de análise sem fato novo, previsão de terceiros sem
+respaldo de órgão oficial, boato e "dizem que", treta de rede social,
+lançamento de produto, resultado de empresa e ciência sem acontecimento.
+Tecnologia e mercado entram só pela porta do fato (o chip que virou controle de
 exportação, o cabo submarino cortado, o preço do petróleo que a guerra move);
 se esse ângulo não estiver no post, ignore o post.
 
 NÃO ESCOLHA LADO ao resumir: reporte quem afirmou o quê. Quando dois lados dão
 números ou versões diferentes para o mesmo fato, registre os dois no resumo e
 diga que divergem — essa divergência é informação, não ruído a ser resolvido.
+No CRIME isso tem uma forma própria: quem foi preso, acusado ou apontado é
+SUSPEITO ou ACUSADO até a condenação, e a acusação é sempre atribuída a quem a
+fez (polícia, Ministério Público, tribunal). Nunca escreva como culpado quem a
+justiça ainda não condenou.
 
 Você recebe os posts publicados nas últimas {horas} horas pelas contas que o
 canal acompanha no X, com autor, data, métricas de engajamento e texto.
@@ -485,7 +508,9 @@ Agrupe-os nas ATÉ {n} TRENDS mais quentes: ataques e operações, movimentos de
 tropa, cessar-fogo e negociação, sanção e tarifa anunciada, contrato ou entrega
 de armamento, teste de míssil, vazamento e documento, decisão de organismo
 multilateral, crise de fronteira ou migratória, corte de fornecimento de
-energia, e as disputas em torno de tudo isso.
+energia, megaoperação e prisão, terremoto e alerta de tsunami, furacão e
+ciclone com trajetória anunciada, enchente e deslizamento, incêndio florestal,
+vazamento e rompimento de barragem, e as disputas em torno de tudo isso.
 
 ORDENE PELO VALOR DA INFORMAÇÃO, não pelo barulho. Sobem para o topo:
 1. VAZAMENTO, documento interno, memorando, print de comunicado, benchmark ou
@@ -505,7 +530,10 @@ mas como desempate, DEPOIS do valor da informação.
 Cada trend deve ser um ACONTECIMENTO específico e datado — quem fez o quê, com
 número quando houver — NUNCA um tema guarda-chuva. "Estados Unidos apreendem
 quarto petroleiro venezuelano no Caribe" é trend; "tensão entre EUA e
-Venezuela" não é.
+Venezuela" não é. Vale igual para o resto: "terremoto de magnitude 6,8 atinge o
+sul das Filipinas e o alerta de tsunami é emitido" é trend, "risco sísmico na
+Ásia" não é; "polícia apreende 4 toneladas de cocaína no porto de Santos" é
+trend, "violência urbana" não é.
 {foco_usa}
 Regras dos campos:
 - "trend": o acontecimento específico, com nome próprio e número exato quando

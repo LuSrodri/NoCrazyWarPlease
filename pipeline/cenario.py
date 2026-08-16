@@ -13,10 +13,21 @@ distorcer), levemente suavizada, dessaturada e escurecida, com vinheta: a
 textura é fundo, e quem tem que puxar o olho é a tela.
 
 QUAL foto é decisão do usuário, e o módulo não presume nada sobre ela: era uma
-cama até 2026-08-14, é uma MESA DE MADEIRA desde então. Por isso o arquivo se
-chama `fundo.png` e não descreve o que mostra — a troca anterior deixou o nome
+cama até 2026-08-14, foi uma mesa de madeira escura até 2026-08-15, e é uma
+superfície de CIMENTO QUEIMADO CLARO desde então. Por isso o arquivo se chama
+`fundo.png` e não descreve o que mostra — a troca anterior deixou o nome
 `fundo-cama.png` mentindo sobre o conteúdo, e o tratamento (cobrir + desfocar +
-dessaturar + vinheta) vale para qualquer textura, em qualquer proporção.
+dessaturar + escurecer + vinheta) vale para qualquer textura, em qualquer
+proporção.
+
+E o escurecimento não é mais um fator fixo, justamente porque a foto troca: a
+madeira tinha luminância média 42 (de 255) e o cimento tem 170, então o mesmo
+0,82 de brilho que deixava a madeira em 34 deixaria o cimento em 139 — mais
+claro que boa parte dos clipes, com o quadro puxando o olho para a moldura em
+vez de para a tela, e a legenda branca do Short (que cai sobre o fundo quando o
+aparelho está deitado) disputando com a superfície. Agora o módulo MEDE a foto
+e escurece o quanto for preciso para a média cair no ALVO — ver
+FUNDO_LUMINANCIA_ALVO.
 
 A ORIENTAÇÃO do aparelho vem do MATERIAL (2026-08-10, pedido do usuário), não
 mais do quadro: clipe horizontal põe o celular DEITADO, clipe vertical põe EM
@@ -58,7 +69,7 @@ Três entradas:
 import math
 from pathlib import Path
 
-from PIL import Image, ImageChops, ImageDraw, ImageEnhance, ImageFilter
+from PIL import Image, ImageChops, ImageDraw, ImageEnhance, ImageFilter, ImageStat
 
 from .config import RAIZ
 
@@ -110,7 +121,22 @@ RAIO_TELA_FRAC = 0.075  # canto da tela (mais redondo que os 0.055 de antes)
 # Tratamento da foto de fundo: ela é fundo, não é o assunto.
 FUNDO_DESFOQUE_FRAC = 0.005  # sigma como fração do lado menor do quadro
 FUNDO_SATURACAO = 0.80
+# TETO do fator de brilho: por mais escura que a foto seja, ela ainda leva este
+# escurecimento discreto (é o valor único que existia até 2026-08-15, calibrado
+# na madeira). Nunca CLAREIA a foto — o fundo é fundo.
 FUNDO_BRILHO = 0.82
+# Luminância média (0-255) que o fundo tratado deve ter quando a foto é clara
+# demais para o teto acima dar conta. O fator vira
+# min(FUNDO_BRILHO, ALVO / média medida), com piso em FUNDO_BRILHO_MIN.
+#
+# 96 é onde o cimento claro ainda LÊ como cimento (a textura sobrevive, o veio
+# e as manchas continuam visíveis) e já está bem abaixo do miolo dos clipes,
+# que rodam em média entre 100 e 130. Descer até os 34 da madeira apagaria a
+# foto que o usuário escolheu e devolveria o retângulo quase preto que a cama
+# desenhada produzia.
+FUNDO_LUMINANCIA_ALVO = 96
+# Piso do fator: uma foto estourada (média perto de 250) não vira chapa cinza.
+FUNDO_BRILHO_MIN = 0.35
 FUNDO_VINHETA = 0.55  # opacidade máxima do escurecimento das bordas
 
 # Corpo do aparelho.
@@ -216,8 +242,8 @@ def _cobrir(foto: Image.Image, largura: int, altura: int) -> Image.Image:
     """Escala a foto para COBRIR o quadro e corta o excesso pelo centro.
 
     Equivale ao `force_original_aspect_ratio=increase` + `crop` do ffmpeg: a
-    textura não pode esticar, senão o veio da madeira entrega que a imagem foi
-    deformada.
+    textura não pode esticar, senão o grão da superfície entrega que a imagem
+    foi deformada.
     """
     escala = max(largura / foto.width, altura / foto.height)
     nova = foto.resize(
@@ -305,6 +331,23 @@ def _capsula(desenho: ImageDraw.ImageDraw, p0, p1, r: float, cor) -> None:
     )
 
 
+def _fator_brilho(img: Image.Image) -> float:
+    """Quanto escurecer a foto de fundo, medindo a luminância dela.
+
+    O fator é o MENOR entre o teto de sempre (FUNDO_BRILHO) e o que põe a média
+    no alvo — então foto escura sai com o tratamento antigo, sem mudança
+    nenhuma, e só a foto clara demais é puxada para baixo. Ver o cabeçalho do
+    módulo: a foto troca, e o que precisa continuar valendo é a hierarquia (a
+    tela é o ponto mais claro do quadro), não um número calibrado numa textura
+    que já saiu.
+    """
+    media = ImageStat.Stat(img.convert("L")).mean[0]
+    if media <= 0:
+        return FUNDO_BRILHO
+    fator = min(FUNDO_BRILHO, FUNDO_LUMINANCIA_ALVO / media)
+    return max(FUNDO_BRILHO_MIN, fator)
+
+
 def _desenhar_fundo(largura: int, altura: int) -> Image.Image:
     """Fundo do quadro: a foto da superfície, tratada para não competir com a tela."""
     if not FUNDO.is_file():
@@ -318,17 +361,17 @@ def _desenhar_fundo(largura: int, altura: int) -> Image.Image:
     img = _cobrir(foto, largura, altura)
     # Suavização leve: profundidade de campo de um objeto apoiado sobre a
     # superfície. Só o bastante para a textura parar de disputar detalhe com o
-    # conteúdo da tela — borrar mais apagaria o veio da madeira e devolveria o
-    # retângulo uniforme que a cama desenhada produzia.
+    # conteúdo da tela — borrar mais apagaria o grão da superfície e devolveria
+    # o retângulo uniforme que a cama desenhada produzia.
     sigma = max(1.0, min(largura, altura) * FUNDO_DESFOQUE_FRAC)
     img = img.filter(ImageFilter.GaussianBlur(sigma))
     img = ImageEnhance.Color(img).enhance(FUNDO_SATURACAO)
-    img = ImageEnhance.Brightness(img).enhance(FUNDO_BRILHO)
+    img = ImageEnhance.Brightness(img).enhance(_fator_brilho(img))
     img = img.convert("RGBA")
 
     # Vinheta: escurece as bordas e empurra o olho para o centro, onde está o
-    # aparelho. Vale mesmo com uma foto escura como a madeira — a vinheta é o
-    # que separa a moldura do quadro da faixa de fundo em volta do celular.
+    # aparelho. Vale mesmo com uma foto escura — a vinheta é o que separa a
+    # moldura do quadro da faixa de fundo em volta do celular.
     mascara = Image.new("L", (largura, altura), 255)
     ImageDraw.Draw(mascara).ellipse(
         [round(-largura * 0.10), round(-altura * 0.06),

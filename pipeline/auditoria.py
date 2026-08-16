@@ -189,8 +189,10 @@ ESCALA:
 3 = É IMAGEM REAL DO ACONTECIMENTO QUE O VÍDEO COBRE, ainda que não dê para
     identificar o objeto exato nem o momento exato. Um clarão no céu noturno,
     fumaça sobre uma cidade ou um comboio militar, num vídeo sobre AQUELA
-    guerra, são registro real do conflito e servem de apoio — não invente
-    exigência de nitidez ou de legenda que o material não precisa ter.
+    guerra, são registro real do conflito e servem de apoio — assim como a rua
+    alagada, o telhado arrancado, o prédio rachado ou a viatura na operação, num
+    vídeo sobre AQUELE temporal, AQUELE terremoto ou AQUELA operação. Não
+    invente exigência de nitidez ou de legenda que o material não precisa ter.
 2 = genérico ou de arquivo: ilustraria qualquer outra notícia com a mesma
     facilidade (paisagem urbana qualquer, sala de servidores qualquer,
     bandeira tremulando). O teste é: trocando o assunto do vídeo, essa imagem

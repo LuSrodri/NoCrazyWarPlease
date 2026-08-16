@@ -23,17 +23,24 @@ from openai import OpenAI
 
 from .config import AVISO_DADOS_EXTERNOS, Config
 
-# Macrotemas do canal, todos DENTRO da geopolítica — o canal não cobre outra
-# coisa, então o macrotema não separa "geopolítica de o resto": ele separa os
-# RECORTES da geopolítica entre si. É isso que faz o rodízio funcionar. No
-# formato CURTO eles têm efeito de regra: o RODÍZIO de temas dos Shorts
-# (escritor.py) veta as candidatas cujo macrotema é o do Short anterior, para
-# que dois Shorts seguidos não sejam a mesma frente da mesma guerra. No formato
-# longo eles seguem só como contexto.
+# Macrotemas do canal. Até 2026-08-15 eram todos DENTRO da geopolítica, e o
+# rótulo só separava os recortes dela entre si. Naquela data o usuário abriu a
+# pauta para cinco famílias de FATO: geopolítica (o núcleo, e a maior parte da
+# lista), acontecimentos internacionais, conflito, CRIME e ALERTA AMBIENTAL E
+# CLIMÁTICO. O que NÃO mudou é a régua: o vídeo cobre algo que ACONTECEU, com
+# fonte — opinião, previsão solta e polêmica de rede social continuam fora.
+#
+# No formato CURTO os macrotemas têm efeito de regra: o RODÍZIO de temas dos
+# Shorts (escritor.py) veta as candidatas cujo macrotema é o do Short anterior,
+# para que dois Shorts seguidos não sejam a mesma frente da mesma guerra — nem
+# dois temporais seguidos. No formato longo eles seguem só como contexto.
 #
 # A granularidade é de propósito maior do que num canal generalista: com dois
 # ou três rótulos ("guerra", "diplomacia"), um ciclo quente de conflito
-# ocuparia o canal inteiro e o rodízio não teria para onde ir.
+# ocuparia o canal inteiro e o rodízio não teria para onde ir. Pelo mesmo
+# motivo o desastre entra em TRÊS rótulos (o geológico, o meteorológico e o
+# ambiental de origem humana) em vez de um "desastres" só: uma temporada de
+# furacões tem fato novo todo dia e sozinha tomaria o canal.
 MACROTEMAS = [
     "guerra-conflito",
     "defesa-armamento",
@@ -45,6 +52,11 @@ MACROTEMAS = [
     "poder-interno",
     "fronteiras-migracao",
     "americas",
+    "crime-seguranca",
+    "desastre-natural",
+    "clima-extremo",
+    "risco-ambiental",
+    "internacional-geral",
     "outro",
 ]
 
@@ -71,11 +83,29 @@ MACROTEMAS_DESCRICAO = """\
 - americas: o hemisfério visto de perto — Venezuela, Brasil no mundo, América
   Latina, e a relação dela com Estados Unidos e China. Se o fato é de outra
   região, use o macrotema do assunto, não este
-- outro: geopolítica que não couber acima\
+- crime-seguranca: crime como FATO apurado — megaoperação policial, apreensão,
+  prisão, denúncia ou condenação, atentado, ataque armado, crime organizado,
+  tráfico, sequestro, fraude bilionária, e a segurança pública em torno disso
+- desastre-natural: evento GEOLÓGICO e o alerta oficial dele — terremoto,
+  tsunami, erupção, deslizamento de terra, e o número da escala (magnitude,
+  vítimas, desaparecidos) que a autoridade divulgou
+- clima-extremo: evento METEOROLÓGICO e o alerta oficial dele — furacão,
+  ciclone, tornado, ventania, temporal, enchente e alagamento, seca, onda de
+  calor ou de frio, nevasca, incêndio florestal
+- risco-ambiental: dano ambiental de origem HUMANA — vazamento de óleo ou de
+  químico, rompimento de barragem, contaminação de água, acidente industrial ou
+  nuclear, desmatamento medido, e a decisão regulatória que vem depois
+- internacional-geral: o grande acontecimento internacional que não é disputa
+  entre Estados nem desastre — acidente aéreo ou ferroviário, colapso de
+  estrutura, surto de doença, decisão judicial de repercussão mundial, morte de
+  figura conhecida no mundo todo
+- outro: fato apurado que não couber acima\
 """
 
 INSTRUCOES_CLASSIFICACAO = """\
-Você anota notícias candidatas a vídeo de um canal de análise de GEOPOLÍTICA.
+Você anota notícias candidatas a vídeo de um canal de análise de FATOS —
+geopolítica, acontecimentos internacionais, conflito, crime e alertas
+ambientais e climáticos.
 
 Para CADA notícia, preencha:
 - "macrotema": UM macrotema da lista:

@@ -1,16 +1,36 @@
-"""Automação de vídeos de análise de GEOPOLÍTICA a partir das trends do X.
+"""Automação de vídeos de análise de FATOS a partir das trends do X.
 
 Canal: https://www.youtube.com/@NoCrazyWarPlease (português). Mesmo
-pipeline do repo `automacao-video`, com outra pauta: guerra e conflito,
-defesa, programa nuclear, inteligência, diplomacia, sanção, disputa por
-energia e recurso, fronteira e migração — e nada fora disso.
+pipeline do repo `automacao-video`, com outra pauta. Ela nasceu como
+GEOPOLÍTICA e só ela, e em 2026-08-15 o usuário abriu para cinco famílias de
+acontecimento:
+1. GEOPOLÍTICA, que segue sendo o núcleo — guerra e conflito, defesa, programa
+   nuclear, inteligência, diplomacia, sanção, disputa por energia e recurso,
+   fronteira e migração;
+2. ACONTECIMENTO INTERNACIONAL de grande porte (acidente, colapso, surto,
+   decisão judicial de repercussão mundial);
+3. CRIME apurado (megaoperação, apreensão, prisão, condenação, crime
+   organizado, tráfico, fraude);
+4. ALERTA E DESASTRE AMBIENTAL OU CLIMÁTICO (terremoto, tsunami, erupção,
+   deslizamento, furacão, ciclone, ventania, alagamento, seca, incêndio);
+5. RISCO AMBIENTAL de origem humana (vazamento, rompimento de barragem,
+   contaminação, acidente industrial).
+
+O que NÃO se abriu foi a régua: VIÉS FACTUAL — o vídeo cobre algo que
+ACONTECEU, com fonte nominal. Opinião, previsão de terceiros sem órgão oficial,
+boato e polêmica de rede social continuam fora, e a previsão de órgão oficial
+(trajetória de furacão, alerta de tsunami) entra porque o alerta é ele mesmo um
+fato datado, com autor.
 
 A regra editorial que este canal tem e o outro não: NEUTRALIDADE. O vídeo
 explica a disputa e não escolhe lado nela; toda afirmação disputada é
 ATRIBUÍDA a quem a fez, número de baixas só entra com a fonte colada, e
 quando os lados divergem o vídeo diz que divergem. A regra está em três
 lugares de propósito (seleção, roteiro e auditoria pró-leigo), porque é a
-única cuja violação não estraga um vídeo, estraga o canal.
+única cuja violação não estraga um vídeo, estraga o canal. Na pauta de crime
+ela toma a forma da PRESUNÇÃO DE INOCÊNCIA (suspeito ou acusado até a
+condenação, acusação atribuída a quem a fez); na de desastre, a de balanço
+sempre atribuído e marcado como parcial enquanto for parcial.
 
 Fluxo:
 1. X API coleta os posts das últimas 24h da lista fixa de contas (CONTAS_PADRAO

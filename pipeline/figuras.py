@@ -11,9 +11,10 @@ diferença de origem: aqui a imagem não vem de lugar nenhum do mundo real — e
 Por que a IA e não o Pillow: grafico.py já desenha, com precisão perfeita,
 contador e barra comparativa. O que ele não desenha é tabela, linha do tempo,
 diagrama de fluxo, mapa de mercado e cartaz — e é justamente esse repertório
-que um vídeo de análise de geopolítica pede — mapa da região, linha do tempo
-da escalada, tabela de quem fornece o quê a quem, comparação de arsenal ou
-de preço. O gpt-image-2 cobre esse repertório.
+que um vídeo de análise de fato pede — mapa da região, linha do tempo da
+escalada, tabela de quem fornece o quê a quem, comparação de arsenal ou de
+preço, trajetória do ciclone, escala do terremoto, o caminho do dinheiro no
+esquema criminoso. O gpt-image-2 cobre esse repertório.
 
 O QUE ENTRA NA FIGURA É SÓ O QUE A NARRAÇÃO DISSE: cada figura é ancorada numa
 CITAÇÃO LITERAL do texto narrado, e os rótulos e valores desenhados são os que
@@ -255,8 +256,9 @@ def _esquema(publico: str) -> dict:
 
 
 INSTRUCOES_FIGURAS = """\
-Você é o editor de INFOGRAFIA de um canal de vídeos de análise de
-GEOPOLÍTICA.
+Você é o editor de INFOGRAFIA de um canal de vídeos de análise de FATOS —
+geopolítica, acontecimentos internacionais, conflito, crime e alertas
+ambientais e climáticos.
 
 IDIOMA — A REGRA QUE MANDA EM TODAS AS OUTRAS: este canal publica em {idioma}, e
 TODO texto que aparece desenhado na figura (título, rótulos, valores) sai em

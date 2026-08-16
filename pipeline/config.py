@@ -208,32 +208,52 @@ PRIVACIDADES_TIKTOK = {
 # Contas fixas do X que alimentam a coleta. X_ACCOUNTS no .env, quando
 # preenchido, substitui esta lista inteira.
 #
-# FOCO DO CANAL: GEOPOLÍTICA, e só ela. Guerra, conflito armado, defesa,
-# inteligência, diplomacia, sanções, disputa por energia e recurso, e a
-# economia que sai disso. A lista é a evolução da curadoria de geopolítica que
-# existia no repo `automacao-video` até 2026-07-30 (sentdefender, Faytuks,
-# Osint613, WhiteHouse, FBI, SecRubio, exercitooficial, EmbaixadaEUA,
-# CNNBrasil, brasilparalelo, revistaoeste) — lá aquelas contas SAÍRAM quando o
-# canal virou tecnologia/mercado; aqui elas são o núcleo, e a lista foi
-# ampliada para cobrir os teatros de verdade.
+# FOCO DO CANAL (ampliado em 2026-08-15, pedido do usuário): a lista nasceu
+# cobrindo GEOPOLÍTICA e só ela, e passou a cobrir as cinco famílias de FATO do
+# canal — geopolítica (que segue sendo o núcleo e a maior parte da lista),
+# acontecimento internacional, conflito, CRIME e ALERTA AMBIENTAL E CLIMÁTICO.
+# O núcleo geopolítico é a evolução da curadoria que existia no repo
+# `automacao-video` até 2026-07-30 (sentdefender, Faytuks, Osint613,
+# WhiteHouse, FBI, SecRubio, exercitooficial, EmbaixadaEUA, CNNBrasil,
+# brasilparalelo, revistaoeste) — lá aquelas contas SAÍRAM quando o canal virou
+# tecnologia/mercado; aqui elas são o núcleo.
 #
 # A ORDEM IMPORTA, e a primeira seção não está em primeiro por acaso: o formato
 # é montado SÓ com clipe de vídeo nativo dos posts, e quem publica clipe de
 # geopolítica em volume são as contas de OSINT e monitoramento de conflito. Os
 # veículos e os think tanks entram para dar fato, número e contexto correto —
-# raramente para dar imagem.
+# raramente para dar imagem. As seções novas seguem a mesma divisão de trabalho:
+# quem dá o CLIPE são os monitores de desastre e as polícias (que publicam o
+# vídeo da operação e da rua alagada); quem dá o NÚMERO e a autoridade são as
+# agências oficiais (serviço geológico, centro de furacões, defesa civil,
+# Ministério Público) — e o alerta delas é, ele mesmo, um fato datado.
 #
-# Todos os handles abaixo foram VERIFICADOS um a um contra /2/users/by da X API
-# em 2026-08-10 (existência e grafia). Handle que não resolve é conta morta:
-# ela ocupa espaço na query de 512 caracteres e não devolve post nenhum. Oito
-# candidatos foram descartados por não resolverem (DeptofDefense — virou
-# DeptofWar —, IndoPac_Info, Yonhap_Feed, lapatilla, ItamaratyGovBr,
-# fab_oficial, SPGlobalCI, geopoliticalrpt).
+# VERIFICAÇÃO (2026-08-15): os 162 handles anteriores e os 52 novos foram
+# consultados um a um em /2/users/by, com `most_recent_tweet_id` traduzido em
+# data (o id do X carrega o timestamp). Handle que não resolve — ou que resolve
+# mas está MORTO, ou PROTEGIDO — ocupa espaço na query de 512 caracteres e não
+# devolve post nenhum, então saíram catorze:
+#   - sem post há mais de 6 meses: IntelCrab (2024-10), MENA_Conflict (2024-07),
+#     Conflicts (2023-04), KremlinRussia_E (2022-03), SPGlobalPlatts (2023-09),
+#     IswResearch (2026-02; a conta viva do ISW é TheStudyofWar, que fica),
+#     guardian (2024-11 — o Guardian saiu do X), Itamaraty_ (2025-11);
+#   - handle errado, ocupado por conta parada com punhado de seguidores:
+#     hassanihassan (o analista é hxhassan, que entra no lugar), mre_brasil,
+#     marinhaoficial e fab_br (a Marinha e a FAB não têm handle vivo: marmilbr,
+#     defesagovbr, fab_govbr e ItamaratyBR não resolvem);
+#   - PROTEGIDAS, que a busca da API não enxerga: dwnews (substituída por
+#     DeutscheWelle) e GuerraNoMundo.
+# Descartados por não resolverem, entre os candidatos novos: SGB_oficial,
+# sgb_cprm, ibama_gov, mmagovbr, policiafederal, prfbrasil, TWCBreaking,
+# MIDRgovbr, CBMERJ. Descartados por estarem parados ou protegidos: inmet_
+# (sem post desde 2026-04 — o INMET não alimenta uma janela de 24h; quem cobre
+# o tempo no Brasil aqui é MetSul), climatempo (2025-09), CEMADEN e ibamagovbr
+# (protegidas), Europol (2026-02), USGSted (2025-09).
 CONTAS_PADRAO = [
     # --- OSINT e monitoramento de conflito (a fonte de CLIPE do formato) ----
-    "sentdefender", "Faytuks", "FaytuksNetwork", "Osint613", "IntelCrab",
+    "sentdefender", "Faytuks", "FaytuksNetwork", "Osint613",
     "Militarylandnet", "GeoConfirmed", "AuroraIntel", "ELINTNews",
-    "Global_Mil_Info", "WarMonitors", "MENA_Conflict", "Conflicts",
+    "Global_Mil_Info", "WarMonitors",
     "Osinttechnical", "clashreport", "IsraelRadar_com", "warintel4u",
     "IntelDoge", "Liveuamap", "detresfa_",
     # --- Breaking news e agregadores de urgência ----------------------------
@@ -244,7 +264,7 @@ CONTAS_PADRAO = [
     "DefenceU", "ZelenskyyUa", "Tendar", "JuliaDavisNews", "RALee85",
     "DefMon3", "IAPonomarenko", "KyivPost", "nexta_tv", "front_ukrainian",
     # --- Oriente Médio -------------------------------------------------------
-    "IDF", "manniefabian", "JoeTruzman", "Charles_Lister", "hassanihassan",
+    "IDF", "manniefabian", "JoeTruzman", "Charles_Lister", "hxhassan",
     "Nrg8000", "IranIntl_En", "IsraeliPM", "TimesofIsrael", "AlArabiya_Eng",
     "i24NEWS_EN", "AJEnglish", "Israel_Alma_org", "N12News",
     # --- Ásia-Pacífico e China ----------------------------------------------
@@ -257,26 +277,50 @@ CONTAS_PADRAO = [
     "WhiteHouse", "POTUS", "StateDept", "SecRubio", "statedeptspox",
     "DeptofWar", "CENTCOM", "US_EUCOM", "USNavy", "USTreasury", "DHSgov",
     "FBI", "CIA", "NATO", "SecGenNATO", "UN", "UNGeneva", "iaeaorg",
-    "EU_Commission", "vonderleyen", "KremlinRussia_E", "mfa_russia",
+    "EU_Commission", "vonderleyen", "mfa_russia",
     "MFA_China", "EmbaixadaEUA",
     # --- Análise, think tanks e pesquisa -------------------------------------
-    "IswResearch", "TheStudyofWar", "ianbremmer", "KofmanMichael",
+    "TheStudyofWar", "ianbremmer", "KofmanMichael",
     "PhillipsPOBrien", "CFR_org", "CSIS", "IISS_org", "CarnegieEndow",
     "AtlanticCouncil", "ChathamHouse", "RANDCorporation", "FDD",
     "WarOnTheRocks", "ForeignAffairs", "ForeignPolicy", "CrisisGroup",
     "SIPRIorg",
     # --- Imprensa internacional ----------------------------------------------
     "Reuters", "ReutersWorld", "AP", "AFP", "BBCWorld", "BBCBreaking",
-    "FT", "WSJ", "TheEconomist", "dwnews", "France24_en", "SkyNews",
-    "guardian", "washingtonpost", "nytimes", "Telegraph", "business",
+    "FT", "WSJ", "TheEconomist", "DeutscheWelle", "France24_en", "SkyNews",
+    "washingtonpost", "nytimes", "Telegraph", "business",
     # --- Energia, commodities e a economia da geopolítica --------------------
-    "JavierBlas", "staunovo", "OilSheppard", "SPGlobalPlatts", "IEA",
+    "JavierBlas", "staunovo", "OilSheppard", "IEA",
     "OPECSecretariat", "KobeissiLetter", "zerohedge", "unusual_whales",
+    # --- Sismo, vulcão e tsunami (2026-08-15) --------------------------------
+    # USGS, LastQuake e NWS_NTWC dão a MEDIDA e o alerta oficial (magnitude,
+    # profundidade, aviso de tsunami); SismoDetector, volcaholic1 e EarthUncutTV
+    # são as contas que publicam o CLIPE do tremor e da erupção.
+    "USGS", "LastQuake", "EMSC", "SismoDetector", "NWS_NTWC",
+    "volcaholic1", "VolcanoDiscover", "TheWatchers_", "EarthUncutTV",
+    # --- Tempo extremo: furacão, ciclone, tornado, temporal (2026-08-15) ------
+    # NHC_Atlantic e NHC_Pacific são a autoridade sobre trajetória e categoria;
+    # NWSSPC dá o alerta de tornado; NOAASatellites dá a imagem de satélite.
+    "NWS", "NHC_Atlantic", "NHC_Pacific", "NWSSPC", "NOAASatellites",
+    "MetOffice", "severeweatherEU", "extremetemps", "weatherchannel",
+    "AccuWeather", "WeatherNation", "TropicalTidbits", "StormchaserUKEU",
+    # --- Clima, desastre e resposta humanitária (2026-08-15) -----------------
+    "WMO", "CopernicusEMS", "NASAEarth", "reliefweb", "UNOCHA", "ifrc",
+    "CAL_FIRE", "NIFC_Fire",
+    # --- Crime, polícia e justiça (2026-08-15) -------------------------------
+    # Fonte do FATO apurado — a operação, a apreensão, a denúncia, a condenação
+    # — e do clipe da própria operação. A acusação que vier daqui é sempre
+    # atribuída a elas no roteiro: acusado é acusado até a condenação.
+    "TheJusticeDept", "DEAHQ", "ATFHQ", "CBP", "ICEgov", "HSI_HQ",
+    "INTERPOL_HQ", "UNODC", "PMESP", "PCERJ", "MPF_PGR",
+    # --- Acontecimento internacional de grande porte (2026-08-15) ------------
+    "flightradar24", "airlivenet", "NTSB_Newsroom", "WHO",
     # --- Brasil ---------------------------------------------------------------
     "CNNBrasil", "g1", "folha", "Estadao", "Poder360", "JornalOGlobo",
-    "UOLNoticias", "Itamaraty_", "mre_brasil", "exercitooficial",
-    "marinhaoficial", "fab_br", "DefesaNet", "podernaval", "GuerraNoMundo",
+    "UOLNoticias", "exercitooficial", "DefesaNet", "podernaval",
     "revistaoeste", "brasilparalelo", "infomoney", "BrazilJournal",
+    # --- Brasil: clima, defesa civil e emergência (2026-08-15) ---------------
+    "MetSul", "defesacivilbr", "defesacivilsp", "AlertaRio", "BombeirosPMESP",
     # --- Contas que o usuário acompanha de perto ------------------------------
     "elonmusk", "dfolloni", "_cyberhusky", "lucasjvds", "Sam_Acqua",
 ]
