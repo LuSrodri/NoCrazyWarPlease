@@ -424,7 +424,6 @@ def montar_descricao(
     publico: str,
     formato: str = "curto",
     trend: dict | None = None,
-    noticias: list[dict] | None = None,
     marcos: list[tuple[float, str]] | None = None,
 ) -> str:
     """Monta a descrição publicada a partir das peças do roteiro.
@@ -436,8 +435,7 @@ def montar_descricao(
        com número e fonte, no formato que motor de resposta generativo extrai;
     3. os capítulos (formato longo, quando fecham) — viram "momentos
        principais" e dão ao YouTube um índice do que o vídeo cobre;
-    4. as fontes reais (formato longo) — os posts do X e os veículos que a
-       narração citou nominalmente;
+    4. as fontes reais (formato longo) — os posts do X que originaram a trend;
     5. as hashtags, sempre por último.
     """
     rotulos = _rotulos(publico)
@@ -459,10 +457,7 @@ def montar_descricao(
 
     if formato == "longo":
         urls = list(
-            dict.fromkeys(
-                [u for u in ((trend or {}).get("posts") or []) if u]
-                + [n.get("url", "") for n in (noticias or []) if n.get("url")]
-            )
+            dict.fromkeys(u for u in ((trend or {}).get("posts") or []) if u)
         )[:10]
         if urls:
             blocos.append(

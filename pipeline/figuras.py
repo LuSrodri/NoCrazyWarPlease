@@ -122,13 +122,13 @@ REGRAS_IDIOMA = {
         "Escreva o título e os rótulos EXCLUSIVAMENTE em PORTUGUÊS DO BRASIL, "
         "e use as unidades e a notação brasileiras (R$, US$ 2 bi, 21 mil, "
         "30%). Rótulo em inglês neste canal está ERRADO, mesmo que o assunto "
-        "seja americano e mesmo que as notícias recebidas estejam em inglês."
+        "seja americano e mesmo que o material recebido esteja em inglês."
     ),
     "usa": (
         "Write the title and every label EXCLUSIVELY in AMERICAN ENGLISH, "
         "with American units and notation ($2B, 21K, 30%). A Portuguese label "
-        "on this channel is WRONG, no matter what language the source posts or "
-        "the news articles were written in."
+        "on this channel is WRONG, no matter what language the source posts "
+        "were written in."
     ),
 }
 
@@ -262,11 +262,11 @@ ambientais e climáticos.
 
 IDIOMA — A REGRA QUE MANDA EM TODAS AS OUTRAS: este canal publica em {idioma}, e
 TODO texto que aparece desenhado na figura (título, rótulos, valores) sai em
-{idioma}. {regra_idioma} O idioma do material recebido (posts e notícias) não
-tem nada a ver com isso: ele é fonte, não modelo de escrita.
+{idioma}. {regra_idioma} O idioma do material recebido (os posts do X) não tem
+nada a ver com isso: ele é fonte, não modelo de escrita.
 
-Você recebe a NARRAÇÃO de um vídeo e o material que a embasou (resumo da pauta
-e notícias). Escolha até {maximo} MOMENTOS em que uma figura desenhada —
+Você recebe a NARRAÇÃO de um vídeo e o resumo da pauta que a embasou. Escolha
+até {maximo} MOMENTOS em que uma figura desenhada —
 gráfico, tabela, infográfico, diagrama ou cartaz — aparece por cerca de
 {duracao} segundos sobreposta ao vídeo.
 
@@ -280,8 +280,8 @@ REGRAS:
    antes, não depois.
 2. Só entra dado que ESTÁ NA NARRAÇÃO. Os valores da figura são os mesmos que o
    espectador acabou de ouvir, na mesma forma arredondada. É PROIBIDO trazer
-   número das notícias que a narração não diz: a tela mostrando um número que
-   ninguém falou é o pior defeito possível aqui.
+   número do resumo da pauta que a narração não diz: a tela mostrando um número
+   que ninguém falou é o pior defeito possível aqui.
 3. Escolha a FORMA pelo dado, não por estética: duas quantidades comparáveis
    pedem barras; uma série no tempo pede linha; três ou quatro itens com um
    atributo cada pedem tabela; uma cadeia de causa e efeito pede diagrama; um
@@ -403,17 +403,14 @@ def _no_idioma_do_canal(figura: dict, publico: str) -> bool:
 
 
 def _planejar(
-    cfg: Config, texto_video: str, trend: dict, noticias: list[dict], maximo: int
+    cfg: Config, texto_video: str, trend: dict, maximo: int
 ) -> list[dict]:
     contexto = (trend or {}).get("resumo", "")
-    manchetes = "\n".join(
-        f"- {(n.get('titulo') or '').strip()}" for n in (noticias or [])[:6]
-    )
     conteudo = (
         AVISO_DADOS_EXTERNOS + "\n\n"
         f"NARRAÇÃO DO VÍDEO (é daqui que saem os dados):\n{texto_video}\n\n"
         f"CONTEXTO DA PAUTA (só para você entender o assunto — NÃO tire números "
-        f"daqui):\n{contexto}\n{manchetes}"
+        f"daqui):\n{contexto}"
     )
     idioma = nome_do_idioma(cfg.publico)
     esquema = _esquema(cfg.publico)
@@ -499,7 +496,6 @@ def gerar_figuras(
     cfg: Config,
     texto_video: str,
     trend: dict,
-    noticias: list[dict],
     alinhamento: dict,
     dur_total: float,
     pasta: Path,
@@ -531,7 +527,7 @@ def gerar_figuras(
         return []
 
     try:
-        plano = _planejar(cfg, texto_video, trend, noticias, maximo)
+        plano = _planejar(cfg, texto_video, trend, maximo)
     except Exception as erro:  # noqa: BLE001 — figura nunca derruba o vídeo
         print(f"[aviso] Planejamento das figuras falhou ({erro}); seguindo sem.")
         return []

@@ -76,7 +76,7 @@ IDIOMAS = {
         "regra": (
             "Write EXCLUSIVELY in AMERICAN ENGLISH. A Portuguese cover on "
             "this channel is WRONG, no matter what language the source posts "
-            "or the news articles were written in."
+            "were written in."
         ),
         "exemplos": (
             '"GOOGLE CUTS 8,000 JOBS", "OIL DROPS 11%", '

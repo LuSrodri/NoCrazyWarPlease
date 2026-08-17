@@ -19,14 +19,15 @@ Duas etapas:
    fato reformulado); e (b) só nos SHORTS, o RODÍZIO DE TEMAS (2026-08-04): as
    candidatas do macrotema do Short anterior saem da disputa antes da escolha,
    de modo que cada Short saia de um tema diferente do anterior. Devolve também
-   uma consulta de notícias para enriquecer o material.
-2. `gerar_roteiro` — com a trend escolhida + notícias do Firecrawl, escreve o
-   roteiro em enquadramento de ANÁLISE/EDUCACIONAL (formato explicativo), em
-   tom adulto e inteligente (ritmo de fala natural, vocabulário preciso de
+   uma consulta de clipes, com a qual o formato longo faz a busca aberta de
+   posts com vídeo no X.
+2. `gerar_roteiro` — com a trend escolhida, escreve o roteiro em
+   enquadramento de ANÁLISE/EDUCACIONAL (formato explicativo), em tom adulto
+   e inteligente (ritmo de fala natural, vocabulário preciso de
    telejornal, estrutura PERGUNTA ESQUISITA → CONTEXTUALIZAÇÃO →
    DESENVOLVIMENTO → CONSEQUÊNCIA → CONCLUSÃO, com a conclusão respondendo a
    pergunta de um jeito que emenda de volta nela no reinício — o loop), SEMPRE
-   citando as fontes (contas do X e veículos das notícias do Firecrawl),
+   citando as fontes (as contas do X que originaram a trend),
    dentro de uma FAIXA dura de palavras (piso e teto derivados de
    VIDEO_DURACAO — o teto sozinho deixava o vídeo sair com metade da
    duração-alvo). Ao final, a AUDITORIA
@@ -242,14 +243,14 @@ ESQUEMA_SELECAO = {
                     "reais do canal (que vídeos parecidos performaram e como)."
                 ),
             },
-            "consulta_noticias": {
+            "consulta_clipes": {
                 "type": "string",
                 "description": (
-                    "Consulta CURTA de busca de NOTÍCIAS em inglês: 3 a 6 "
-                    "palavras, só os nomes próprios principais + o acontecimento "
-                    "central (ex.: 'Anthropic Claude global outage'). NÃO empilhe "
-                    "detalhes, sintomas, códigos de erro nem sinônimos — consulta "
-                    "longa demais zera os resultados."
+                    "Consulta CURTA de busca de POSTS COM VÍDEO no X, em inglês: "
+                    "3 a 6 palavras, só os nomes próprios principais + o "
+                    "acontecimento central (ex.: 'Anthropic Claude global "
+                    "outage'). NÃO empilhe detalhes, sintomas, códigos de erro "
+                    "nem sinônimos — consulta longa demais zera os resultados."
                 ),
             },
             "consulta_youtube": {
@@ -261,14 +262,14 @@ ESQUEMA_SELECAO = {
                     "inteligência artificial', 'nvidia corte preço chip'). É com "
                     "ela que o pipeline descobre que outros vídeos sobre este "
                     "fato já saíram hoje. Não é a mesma coisa que a consulta de "
-                    "notícias: aqui é linguagem de espectador, não de agência."
+                    "clipes: aqui é linguagem de espectador, não de agência."
                 ),
             },
         },
         "required": [
             "trend",
             "motivo",
-            "consulta_noticias",
+            "consulta_clipes",
             "consulta_youtube",
         ],
     },
@@ -290,8 +291,8 @@ COMENTARIO_PROPRIEDADE = {
         "Comentário do DONO do canal, para ser postado no vídeo assim que ele "
         "sair. Duas frases, no idioma definido nas instruções, até 280 "
         "caracteres. Frase 1: o dado, número ou contexto REAL que não coube "
-        "nos segundos do vídeo (algo das notícias ou dos posts recebidos — "
-        "nunca inventado, nunca repetição literal da narração). Frase 2: uma "
+        "nos segundos do vídeo (algo do material recebido — nunca inventado, "
+        "nunca repetição literal da narração). Frase 2: uma "
         "pergunta aberta e concreta sobre a DISPUTA do assunto, que uma pessoa "
         "comum consiga responder com opinião a partir do que o vídeo mostrou "
         "('quem paga essa conta no fim?'). PROIBIDO: pedir like, inscrição ou "
@@ -608,9 +609,10 @@ ESQUEMA_ROTEIRO_LONGO = {
                     "palavras, teto 22), vocabulário preciso de telejornal, "
                     "tom adulto de analista que respeita o espectador. Toda "
                     "afirmação central atribuída nominalmente à fonte "
-                    "(veículo de notícias ou conta do X), somente fontes das "
-                    "listas recebidas. O vídeo NÃO tem legendas nem texto na "
-                    "tela: a narração precisa se sustentar sozinha, sem "
+                    "(conta do X, ou o veículo que o material nomeia), "
+                    "somente fontes do material recebido. O vídeo NÃO tem "
+                    "legendas nem texto na tela: a narração precisa se "
+                    "sustentar sozinha, sem "
                     "'como você vê aqui' nem referência a imagem."
                 ),
             },
@@ -1209,9 +1211,9 @@ FATOS: geopolítica, acontecimentos internacionais, conflito, crime e alertas
 ambientais e climáticos. O vídeo cobre SEMPRE algo que aconteceu, com fonte —
 nunca opinião, nunca previsão que não seja de órgão oficial. {foco}
 
-Você recebe a TREND escolhida (com a IMAGEM MENTAL que ela evoca), os POSTS DO
-X que originaram a trend e NOTÍCIAS recentes sobre ela. Use as notícias para
-acertar fatos, nomes, empresas, datas e números — não invente.
+Você recebe a TREND escolhida (com a IMAGEM MENTAL que ela evoca) e os POSTS DO
+X que originaram a trend. Use esse material para acertar fatos, nomes,
+empresas, datas e números — não invente.
 
 ENQUADRAMENTO — SEMPRE análise ou educacional, em formato EXPLICATIVO: o vídeo
 explica o que aconteceu, como funciona e por que importa — nunca é um grito de
@@ -1255,11 +1257,11 @@ isso — "o número é parcial, segundo a defesa civil" é informação, não re
 fraca.
 
 FONTES — OBRIGATÓRIO citar a fonte na narração: todo fato central do vídeo é
-atribuído a quem o publicou — o veículo de notícias ("segundo a Reuters", "o
-Financial Times revelou") ou a conta do X ("no post de @sentdefender", "o
-Instituto para o Estudo da Guerra registrou"). Cite SOMENTE fontes que estão
-nas listas recebidas (posts do X e notícias); cite pelo menos uma, no ponto
-onde o fato dela entra, embutida na frase — nunca em bloco de leitura de
+atribuído a quem o publicou — a conta do X ("no post de @sentdefender", "o
+Instituto para o Estudo da Guerra registrou") ou o veículo que o próprio
+material recebido nomeia ("segundo a Reuters", "o Financial Times revelou").
+Cite SOMENTE fontes que estão no material recebido; cite pelo menos uma, no
+ponto onde o fato dela entra, embutida na frase — nunca em bloco de leitura de
 créditos. Nome de veículo ou de conta citado como fonte NÃO conta no teto de
 nomes próprios desconhecidos.
 
@@ -1491,10 +1493,10 @@ centro de furacões elevou o ciclone à categoria 4"). Previsão de órgão ofic
 de rede social apresentado como oficial; quando o número oficial ainda está
 mudando, diga que é parcial e de quem ele é.
 
-Você recebe a TREND escolhida (com a IMAGEM MENTAL que ela evoca), os POSTS DO
-X que originaram a trend e NOTÍCIAS recentes sobre ela. Use as notícias para
-acertar fatos, nomes, empresas, datas e números — não invente nada. Fato que
-não está no material recebido não entra no vídeo.
+Você recebe a TREND escolhida (com a IMAGEM MENTAL que ela evoca) e os POSTS DO
+X que originaram a trend. Use esse material para acertar fatos, nomes,
+empresas, datas e números — não invente nada. Fato que não está no material
+recebido não entra no vídeo.
 
 ESPECTADOR — A REGRA QUE MANDA EM TODAS AS OUTRAS: um adulto leigo (25 a 54
 anos, sem formação em relações internacionais) que acompanha o noticiário
@@ -1516,10 +1518,11 @@ PROIBIDO "como você vê aqui", "na imagem", "no gráfico", ou qualquer frase qu
 dependa de algo escrito na tela.
 
 FONTES — OBRIGATÓRIO citar nominalmente: cada afirmação central é atribuída a
-quem a publicou — o veículo ("segundo a Reuters", "o Financial Times revelou")
-ou a conta do X ("no post de @unusual_whales"). Cite SOMENTE fontes das listas
-recebidas, pelo menos DUAS ao longo do vídeo, embutidas na frase — nunca em
-bloco de créditos. "Segundo fontes", sem nome, continua proibido. Nome de
+quem a publicou — a conta do X ("no post de @unusual_whales") ou o veículo que
+o próprio material recebido nomeia ("segundo a Reuters", "o Financial Times
+revelou"). Cite SOMENTE fontes que estão no material recebido, pelo menos DUAS
+ao longo do vídeo, embutidas na frase — nunca em bloco de créditos. "Segundo
+fontes", sem nome, continua proibido. Nome de
 veículo ou de conta citado como fonte não conta como nome próprio de nicho.
 
 TOM: analista adulto e afiado — jornalismo econômico de bom nível, não
@@ -2108,7 +2111,7 @@ def selecionar_trend(
 
     # Candidatas já tentadas nesta execução (o material não deu vídeo) saem
     # antes de qualquer outra regra: reescolher a mesma trend gastaria roteiro
-    # e notícias para falhar no mesmo ponto.
+    # de novo para falhar no mesmo ponto.
     if excluir:
         tentadas = {id(t) for t in excluir}
         nomes = {(t.get("trend") or "").strip().lower() for t in excluir}
@@ -2144,8 +2147,8 @@ def selecionar_trend(
     # antes ele era um 2 solto contra um piso de 3, e o que acontecia era pior
     # do que parece — a candidata de 2 clipes não só falhava, ela TIRAVA A VAGA
     # de uma candidata mais bem servida, e só descobria isso depois de gastar
-    # roteiro, notícias e visão. Sem ninguém no portão a execução aborta aqui,
-    # barato: seguir com material insuficiente é gastar para falhar adiante.
+    # roteiro e visão. Sem ninguém no portão a execução aborta aqui, barato:
+    # seguir com material insuficiente é gastar para falhar adiante.
     if longo:
         com_material = [
             t for t in candidatas
@@ -2300,18 +2303,6 @@ def selecionar_trend(
     print(f"[roteiro] Trend escolhida: {selecao['trend']}")
     print(f"[roteiro] Motivo: {selecao['motivo']}")
     return selecao
-
-
-def _resumo_noticias(noticias: list[dict]) -> str:
-    if not noticias:
-        return "(nenhuma notícia recuperada — baseie-se no resumo da trend.)"
-    linhas = []
-    for n in noticias:
-        data = f" ({n['data']})" if n.get("data") else ""
-        veiculo = urlparse(n.get("url", "")).netloc.removeprefix("www.")
-        fonte = f" [fonte: {veiculo}]" if veiculo else ""
-        linhas.append(f"- {n['titulo']}{data}{fonte}: {n.get('resumo', '')}")
-    return "\n".join(linhas)
 
 
 def _fontes_x(urls: list[str]) -> str:
@@ -2536,12 +2527,11 @@ def gerar_roteiro(
     cfg: Config,
     selecao: dict,
     trends: list[dict],
-    noticias: list[dict],
     videos_recentes: list[dict] | None = None,
     campeoes: list[dict] | None = None,
     panorama: dict | None = None,
 ) -> dict:
-    """Gera o roteiro completo da trend escolhida, enriquecido com notícias.
+    """Gera o roteiro completo da trend escolhida.
 
     `panorama` é o retrato do assunto no YouTube de hoje (``seo.py``): os
     vídeos que outros canais já publicaram sobre o mesmo fato nas últimas
@@ -2568,8 +2558,6 @@ def gerar_roteiro(
         f"daqui): {trend_escolhida.get('imagem_mental', '?')}\n\n"
         "POSTS DO X QUE ORIGINARAM A TREND (fontes citáveis na narração):\n"
         + _fontes_x(trend_escolhida.get("posts") or [])
-        + "\n\nNOTÍCIAS RECENTES SOBRE A TREND (o veículo entre colchetes é a "
-        "fonte citável):\n" + _resumo_noticias(noticias)
         + _resumo_estilo(videos_recentes, campeoes, cfg.formato)
         + resumo_para_prompt(panorama)
     )

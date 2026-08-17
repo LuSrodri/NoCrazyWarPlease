@@ -49,15 +49,15 @@ Fluxo:
    Analytics). Regra dura: a escolhida passa por uma verificação
    anti-repetição (GPT confere se ela cobriria o mesmo fato de um vídeo
    publicado nas últimas 36h; se sim, sai da disputa e a seleção refaz).
-   Define também uma consulta de notícias e uma consulta de busca do YouTube.
-4. Firecrawl (sources=news) busca notícias recentes que complementam a trend.
-4b. PANORAMA DO DIA (SEO/GEO, pipeline/seo.py): a YouTube Data API devolve os
+   Define também uma consulta de clipes (busca aberta no X) e uma consulta de
+   busca do YouTube.
+4. PANORAMA DO DIA (SEO/GEO, pipeline/seo.py): a YouTube Data API devolve os
    vídeos que OUTROS canais publicaram sobre o mesmo assunto nas últimas
    JANELA_HORAS, com views/hora e o vocabulário de tags deles. É a única
    leitura do pipeline sobre a disputa FORA do canal, e alimenta título,
    descrição, tags e capa. Falha aqui só avisa (SEO_PANORAMA=0 desliga).
 5. GPT escreve o roteiro explicativo (análise/educacional) em tom adulto,
-   citando as fontes (contas do X e veículos das notícias), na estrutura
+   citando as fontes (as contas do X que originaram a trend), na estrutura
    PERGUNTA ESQUISITA -> CONTEXTUALIZAÇÃO -> DESENVOLVIMENTO -> CONSEQUÊNCIA
    -> CONCLUSÃO, com a conclusão respondendo a pergunta de um jeito que emenda
    de volta nela quando o Short reinicia (loop).
@@ -86,9 +86,9 @@ Fluxo:
 9. A IA planeja os cortes: um "editor de cortes" casa cada clipe aprovado com
    o momento exato da narração (citações do texto -> timestamps do
    alinhamento).
-10. Cartelas de imagem nos momentos-chave: foto do post da trend ou og:image
-    da notícia, auditada igual aos clipes, tomando a TELA DO CELULAR quando a
-    narração nomeia o que ela mostra.
+10. Cartelas de imagem nos momentos-chave: foto do post da trend, auditada
+    igual aos clipes, tomando a TELA DO CELULAR quando a narração nomeia o que
+    ela mostra.
 11. Figuras geradas pelo gpt-image-2 (figuras.py): gráfico, tabela,
     infográfico, diagrama ou cartaz DESENHADO a partir dos números que a
     narração diz — ancorado na citação literal do trecho, e só com dado que a
@@ -173,7 +173,6 @@ from pipeline.escritor import gerar_roteiro, selecionar_trend
 from pipeline.figuras import gerar_figuras
 from pipeline.legendas import gerar_legendas
 from pipeline.midia_x import baixar_midias_posts, descrever_midias
-from pipeline.noticias import buscar_noticias
 from pipeline.registro import registrar
 from pipeline.seo import (
     capitulos,
@@ -290,7 +289,7 @@ def main() -> None:
     # TENTATIVAS_TREND.
     #
     # O laço fecha ANTES do TTS de propósito: as falhas cobertas aqui são as de
-    # material, e refazê-las custa notícias + roteiro + visão, nunca narração.
+    # material, e refazê-las custa roteiro + visão, nunca narração.
     # O piso de duração continua abortando seco lá embaixo — narração curta é
     # defeito do roteiro, e trocar de tema não conserta isso, só paga o
     # ElevenLabs de novo.
@@ -300,7 +299,6 @@ def main() -> None:
             cfg, trends, videos_recentes=recentes, campeoes=campeoes,
             excluir=tentadas,
         )
-        noticias = buscar_noticias(cfg, selecao["consulta_noticias"])
 
         # SEO/GEO: quem MAIS publicou sobre este assunto hoje. É a única leitura
         # do pipeline sobre o lado de fora do canal — os últimos publicados e os
@@ -313,7 +311,7 @@ def main() -> None:
         )
 
         roteiro = gerar_roteiro(
-            cfg, selecao, trends, noticias,
+            cfg, selecao, trends,
             videos_recentes=recentes, campeoes=campeoes, panorama=panorama,
         )
 
@@ -338,7 +336,7 @@ def main() -> None:
         # cada candidata custaria uma consulta por candidata — em troca, a
         # busca não socorre uma candidata que já tenha sido barrada no portão
         # da seleção.
-        extras = buscar_posts_com_video(cfg, selecao.get("consulta_noticias", ""))
+        extras = buscar_posts_com_video(cfg, selecao.get("consulta_clipes", ""))
         if extras:
             urls = trend_video.get("posts") or []
             # `posts` vem com os posts de vídeo na frente (x_client), e o
@@ -538,13 +536,12 @@ def main() -> None:
             area=area_legenda(largura, altura, aparelho_em_pe),
         )
 
-    # Cartelas: a imagem do momento-chave (foto do post da trend ou og:image da
-    # notícia) toma a tela do celular pelo deslize, no lugar do clipe.
+    # Cartelas: a imagem do momento-chave (foto do post da trend) toma a tela do
+    # celular pelo deslize, no lugar do clipe.
     cartelas = gerar_cartelas(
         cfg,
         roteiro["texto_video"],
         fotos,
-        noticias,
         alinhamento,
         duracao,
         pasta,
@@ -562,7 +559,6 @@ def main() -> None:
         cfg,
         roteiro["texto_video"],
         trend_video,
-        noticias,
         alinhamento,
         duracao,
         pasta,
@@ -605,7 +601,6 @@ def main() -> None:
         cfg.publico,
         formato=cfg.formato,
         trend=trend_video,
-        noticias=noticias,
         marcos=marcos,
     )
 

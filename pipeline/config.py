@@ -159,7 +159,6 @@ LONGO_LARGURA = 1920
 LONGO_ALTURA = 1080
 LONGO_MAX_CLIPES = 8  # clipes do X por vídeo (3 seguram mal 2 minutos de tela)
 LONGO_MAX_POSTS_MIDIA = 16  # posts da trend consultados p/ achar esses clipes
-LONGO_NUM_NOTICIAS = 10  # mais notícias = mais material para a análise
 LONGO_MAX_CARTELAS = 4  # cartelas de imagem sobrepostas (dobro de tempo de tela)
 LONGO_MAX_FOTOS = 6  # fotos dos posts baixadas para alimentar as cartelas
 LONGO_MAX_FIGURAS = 4  # figuras/gráficos gerados (dobro de tempo de tela)
@@ -174,9 +173,9 @@ LONGO_MIN_CLIPES_APROVADOS = 3
 # DERIVADO do piso acima de propósito: quando os dois eram independentes (o
 # portão em 2, o piso em 3), uma candidata de 2 clipes passava na seleção e
 # abortava na auditoria sem chance nenhuma — o fracasso já estava selado na
-# escolha, depois de gastar roteiro, notícias e visão. A folga de 1 existe
-# porque a auditoria reprova parte do material (clipe fora do assunto), então
-# material igual ao piso raramente sobrevive inteiro.
+# escolha, depois de gastar roteiro e visão. A folga de 1 existe porque a
+# auditoria reprova parte do material (clipe fora do assunto), então material
+# igual ao piso raramente sobrevive inteiro.
 LONGO_MIN_POSTS_VIDEO = LONGO_MIN_CLIPES_APROVADOS + 1
 
 # --- Fallback de tema (2026-08-05) ------------------------------------------
@@ -189,8 +188,8 @@ LONGO_MIN_POSTS_VIDEO = LONGO_MIN_CLIPES_APROVADOS + 1
 # fora o mais caro para economizar o mais barato.
 #
 # O laço vive em main.py e só cobre as falhas de MATERIAL, que acontecem antes
-# do TTS: cada tentativa extra custa notícias + roteiro + visão, e nenhuma
-# delas custa narração. 3 é o teto porque a terceira candidata já é a terceira
+# do TTS: cada tentativa extra custa roteiro + visão, e nenhuma delas custa
+# narração. 3 é o teto porque a terceira candidata já é a terceira
 # escolha de audiência do modelo — abaixo disso a chance de o vídeo valer a
 # publicação cai mais rápido do que a chance de ele existir.
 TENTATIVAS_TREND = 3
@@ -330,7 +329,6 @@ CONTAS_PADRAO = [
 class Config:
     openai_api_key: str
     elevenlabs_api_key: str
-    firecrawl_api_key: str
     contas: list[str]
     x_consumer_key: str  # X API oficial: coleta dos posts + mídias
     x_consumer_secret: str
@@ -372,7 +370,6 @@ class Config:
     velocidade: float = 1.25
     janela_horas: int = 24
     num_trends: int = 10  # quantas trends do X coletar para escolher a do vídeo
-    num_noticias: int = 6  # quantas notícias buscar (Firecrawl news) p/ enriquecer
     publico: str = "brasil"  # "brasil" ou "usa" (flag -usa no main.py)
     formato: str = "curto"  # "curto" (Shorts 9:16) ou "longo" (--long-take, 16:9)
     max_clipes: int = 3  # clipes de vídeo do X usados na montagem
@@ -452,7 +449,6 @@ def carregar_config() -> Config:
         for nome in (
             "OPENAI_API_KEY",
             "ELEVENLABS_API_KEY",
-            "FIRECRAWL_API_KEY",
             "X_CONSUMER_KEY",
             "X_CONSUMER_SECRET",
         )
@@ -475,7 +471,6 @@ def carregar_config() -> Config:
     cfg = Config(
         openai_api_key=os.environ["OPENAI_API_KEY"],
         elevenlabs_api_key=os.environ["ELEVENLABS_API_KEY"],
-        firecrawl_api_key=os.environ["FIRECRAWL_API_KEY"],
         contas=contas,
         x_consumer_key=os.environ["X_CONSUMER_KEY"],
         x_consumer_secret=os.environ["X_CONSUMER_SECRET"],
@@ -492,7 +487,6 @@ def carregar_config() -> Config:
         velocidade=float(os.getenv("VIDEO_VELOCIDADE", "1.25")),
         janela_horas=int(os.getenv("JANELA_HORAS", "24")),
         num_trends=int(os.getenv("NUM_TRENDS", "10")),
-        num_noticias=int(os.getenv("NUM_NOTICIAS", "6")),
         # A varredura `has:videos` fica LIGADA no curto deste canal, ao
         # contrário do repo de origem, onde ela era 0. Lá o argumento era que
         # os Shorts rodavam 12x por dia e não travavam por falta de clipe; aqui
@@ -573,9 +567,9 @@ def ativar_formato_longo(cfg: Config) -> Config:
 
     Chamado depois de ``carregar_config`` para não interferir no formato curto:
     troca resolução (16:9), duração-alvo (faixa dura de LONGO_MIN_S a
-    LONGO_MAX_S), quantidade de clipes/posts e o volume de notícias. Cada valor
-    tem um env var próprio (LONG_*) para o cron do Render poder ajustar sem
-    mexer nas variáveis do formato curto, que continuam valendo lá.
+    LONGO_MAX_S) e a quantidade de clipes/posts. Cada valor tem um env var
+    próprio (LONG_*) para o cron do Render poder ajustar sem mexer nas
+    variáveis do formato curto, que continuam valendo lá.
     """
     cfg.formato = "longo"
     cfg.video_largura = int(os.getenv("LONG_LARGURA", str(LONGO_LARGURA)))
@@ -593,7 +587,6 @@ def ativar_formato_longo(cfg: Config) -> Config:
     # têm.
     cfg.x_max_posts_video = int(os.getenv("X_MAX_POSTS_VIDEO", "60"))
     cfg.x_max_posts_busca = int(os.getenv("X_MAX_POSTS_BUSCA", "30"))
-    cfg.num_noticias = int(os.getenv("LONG_NUM_NOTICIAS", str(LONGO_NUM_NOTICIAS)))
     cfg.max_cartelas = int(os.getenv("LONG_MAX_CARTELAS", str(LONGO_MAX_CARTELAS)))
     cfg.max_fotos = int(os.getenv("LONG_MAX_FOTOS", str(LONGO_MAX_FOTOS)))
     cfg.max_figuras = int(os.getenv("LONG_MAX_FIGURAS", str(LONGO_MAX_FIGURAS)))
